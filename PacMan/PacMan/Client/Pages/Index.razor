@@ -54,7 +54,7 @@
     {
         if (hubConnection is not null)
         {
-            await hubConnection.SendAsync("SendMessage", userInput, messageInput);
+            await hubConnection.SendAsync("SendMessageToAll", userInput, messageInput);
         }
     }
 

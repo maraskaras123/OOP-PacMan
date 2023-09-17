@@ -4,7 +4,7 @@ namespace PacMan.Server.Hubs
 {
     public class ChatHub : Hub
     {
-        public async Task SendMessage(string user, string message)
+        public async Task SendMessageToAll(string user, string message)
         {
             await Clients.All.SendAsync("ReceiveMessage", user, message);
         }
