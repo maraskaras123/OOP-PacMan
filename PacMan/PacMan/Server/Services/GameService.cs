@@ -1,45 +1,60 @@
-﻿using PacMan.Shared;
+﻿using Microsoft.AspNetCore.SignalR;
+using PacMan.Server.Hubs;
+using PacMan.Shared;
 using PacMan.Shared.Enums;
 
 namespace PacMan.Server.Services
 {
     public interface IGameService
     {
-        void Reset();
-        void AddPlayer(string userId);
-        void RemovePlayer(string userId);
-        Task Start();
+        void Reset(bool? clearPlayers);
+        void Start();
+        Task Init();
         void Finish();
     }
 
     public class GameService : IGameService
     {
-        public void Reset()
+        private readonly IHubContext<GameHub, IGameHubClient> _hubContext;
+
+        public GameService(IHubContext<GameHub, IGameHubClient> hubContext)
         {
-            Storage.State = EnumGameState.Initializing;
-            Storage.UserIds = new ();
+            _hubContext = hubContext;
         }
 
-        public void AddPlayer(string userId)
+        public void Reset(bool? clearPlayers)
         {
-            Storage.UserIds.Add(userId);
+            Storage.GameState = EnumGameState.Initializing;
+            if (clearPlayers ?? false)
+            {
+                Storage.ConnectionIds = new();
+            }
         }
 
-        public void RemovePlayer(string userId)
+        public void Start()
         {
-            Storage.UserIds.Remove(userId);
+            Storage.GameState = EnumGameState.Starting;
         }
 
-        public async Task Start()
+        public async Task Init()
         {
-            Storage.State = EnumGameState.Starting;
-            await Task.Delay(3000);
-            Storage.State = EnumGameState.Running;
+            Storage.GameState = EnumGameState.Running;
+            while (Storage.GameState != EnumGameState.Finished)
+            {
+                await Task.WhenAll(Task.Delay(100), Tick());
+                await _hubContext.Clients.All.Tick();
+            }
         }
 
         public void Finish()
         {
-            Storage.State = EnumGameState.Finished;
+            Storage.GameState = EnumGameState.Finished;
+        }
+
+        // Game Logic
+        private async Task<int> Tick()
+        {
+            
         }
     }
 }
