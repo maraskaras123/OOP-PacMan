@@ -1,0 +1,105 @@
+﻿@page "/gametest"
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager Navigation
+@implements IAsyncDisposable
+@using PacMan.Shared;
+@using PacMan.Shared.Models;
+@using PacMan.Shared.Enums;
+
+<PageTitle>Game test</PageTitle>
+
+@Storage.GameState
+@hubConnection.State
+
+<button @onclick="Start" disabled="@(!IsConnected)">Connect?</button>
+
+<hr>
+
+<ul id="idList">
+    
+</ul>
+
+<button @onclick="StateChanged" disabled="@(!IsConnected)">Update</button>
+
+
+<button></button>
+<button></button>
+<button></button>
+<button></button>
+
+@code {
+    private HubConnection? hubConnection;
+    private List<string> connectedIds = new List<string>();
+
+
+    private StateModel stateModel = new (EnumGameState.Initializing, new ());
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/gamehub"))
+            .Build();
+
+        hubConnection.On<StateModel>("Tick", OnTickAsync);
+
+        try
+        {
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+        }
+        StateHasChanged();
+    }
+
+    private async Task Start()
+    {
+        if (hubConnection is not null)
+        {
+            try
+            {
+                if (hubConnection.State == HubConnectionState.Disconnected)
+                {
+                    await hubConnection.StartAsync();
+                }
+
+                await hubConnection.InvokeAsync("OnStart");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message + " (Start())");
+            }
+        }
+    }
+
+    private async Task StateChanged()
+    {
+        Console.WriteLine("whatdahel");
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/gamehub"))
+            .Build();
+
+        await hubConnection.StartAsync();
+        StateHasChanged();
+    }
+
+    public bool IsConnected =>
+        hubConnection?.State == HubConnectionState.Connected;
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+
+    private async Task OnTickAsync(StateModel model)
+    {
+        this.stateModel = model;
+
+        StateHasChanged();
+    }
+}

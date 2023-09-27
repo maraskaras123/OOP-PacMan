@@ -7,6 +7,6 @@ namespace PacMan.Shared
     {
         public static EnumGameState GameState { get; set; } = EnumGameState.Initializing;
         public static List<string> ConnectionIds { get; set; } = new();
-        public static StateModel State { get; set; } = new ();
+        public static Dictionary<string, GameStateModel> State { get; set; } = new();
     }
 }

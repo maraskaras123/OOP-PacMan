@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.ResponseCompression;
 using PacMan.Server.Hubs;
+using PacMan.Server.Services;
 
 namespace PacMan
 {
@@ -13,7 +14,7 @@ namespace PacMan
 
             builder.Services.AddControllersWithViews();
             builder.Services.AddRazorPages();
-
+            builder.Services.AddSingleton<IGameService, GameService>();
             builder.Services.AddSignalR();
             builder.Services.AddResponseCompression(opts =>
             {
@@ -45,6 +46,10 @@ namespace PacMan
             app.MapRazorPages();
             app.MapControllers();
             app.MapHub<ChatHub>("/chathub");
+            app.MapHub<GameHub>("/gamehub");
+
+
+
             app.MapFallbackToFile("index.html");
 
             

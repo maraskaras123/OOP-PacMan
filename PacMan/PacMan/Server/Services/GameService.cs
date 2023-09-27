@@ -2,6 +2,7 @@
 using PacMan.Server.Hubs;
 using PacMan.Shared;
 using PacMan.Shared.Enums;
+using PacMan.Shared.Models;
 
 namespace PacMan.Server.Services
 {
@@ -41,8 +42,8 @@ namespace PacMan.Server.Services
             Storage.GameState = EnumGameState.Running;
             while (Storage.GameState != EnumGameState.Finished)
             {
-                await Task.WhenAll(Task.Delay(100), Tick());
-                await _hubContext.Clients.All.Tick();
+                await Task.WhenAll(Task.Delay(1000), Tick());
+                await _hubContext.Clients.All.Tick(new StateModel(Storage.GameState, Storage.State.Select((x, index) => $"{index},{x.Value.Coordinates.X},{x.Value.Coordinates.Y}").ToList()));
             }
         }
 
@@ -52,9 +53,40 @@ namespace PacMan.Server.Services
         }
 
         // Game Logic
-        private async Task<int> Tick()
+        private async Task Tick()
         {
-            
+            //Console.WriteLine(Storage.GameState);
+            foreach (var state in Storage.State)
+            {
+                switch (state.Value.Direction) 
+                { 
+                    case EnumDirection.Up:
+                        if (state.Value.Coordinates.Y > 0)
+                        {
+                            state.Value.Coordinates.Offset(0, -1);
+                        }
+                        break;
+                    case EnumDirection.Right:
+                        if (state.Value.Coordinates.X < 30)
+                        {
+                            state.Value.Coordinates.Offset(1, 0);
+                        }
+                        break;
+                    case EnumDirection.Down:
+                        if (state.Value.Coordinates.Y < 30)
+                        {
+                            state.Value.Coordinates.Offset(0, 1);
+                        }
+                        break;
+                    case EnumDirection.Left:
+                        if (state.Value.Coordinates.X > 0)
+                        {
+                            state.Value.Coordinates.Offset(-1, 0);
+                        }
+                        break;
+                }
+            }
+
         }
     }
 }

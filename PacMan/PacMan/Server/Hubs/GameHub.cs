@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using PacMan.Server.Services;
 using PacMan.Shared;
+using PacMan.Shared.Enums;
 using PacMan.Shared.Models;
 
 namespace PacMan.Server.Hubs
@@ -10,6 +11,7 @@ namespace PacMan.Server.Hubs
         Task RegisteredUserId(int userId);
         Task Starting();
         Task Tick(StateModel state);
+        
     }
 
     public class GameHub : Hub<IGameHubClient>
@@ -45,6 +47,24 @@ namespace PacMan.Server.Hubs
             await Clients.All.Starting();
             await Task.Delay(5000);
             await _gameService.Init();
+        }
+
+        [HubMethodName("OnChangeDirection")]
+        public async Task ChangeDirectionAsync(EnumDirection direction)
+        {
+            //var user = Storage.ConnectionIds.FirstOrDefault(s => s == Context.ConnectionId);
+            if (!Storage.ConnectionIds.Contains(Context.ConnectionId))
+            {
+                throw new ArgumentException();
+            }
+            
+            if (!Enum.IsDefined<EnumDirection>(direction))
+            {
+                throw new ArgumentException();
+            }
+
+            Storage.State[Context.ConnectionId].Direction = direction;
+
         }
     }
 }
