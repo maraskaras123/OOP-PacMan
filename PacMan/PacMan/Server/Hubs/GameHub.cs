@@ -33,6 +33,7 @@ namespace PacMan.Server.Hubs
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
             Storage.ConnectionIds.RemoveAt(Storage.ConnectionIds.FindIndex(s => s == Context.ConnectionId));
+            Storage.State.Remove(Context.ConnectionId);
             if (!Storage.ConnectionIds.Any())
             {
                 _gameService.Finish();
@@ -45,8 +46,8 @@ namespace PacMan.Server.Hubs
         {
             _gameService.Start();
             await Clients.All.Starting(EnumGameState.Starting); // i dont think this did anything before?
-            await Task.Delay(1000);            
-            await _gameService.Init();
+            await Task.Delay(1000);
+            Task.Run(_gameService.Init);
         }
 
         [HubMethodName("OnChangeDirection")]

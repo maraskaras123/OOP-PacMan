@@ -28,10 +28,11 @@
 
 }
 <br />
-<button @onclick="() => ChangeDirection(EnumDirection.Up)">↑</button><br />
-<button @onclick="() => ChangeDirection(EnumDirection.Left)">←</button>
-<button @onclick="() => ChangeDirection(EnumDirection.Right)">←</button><br />
-<button @onclick="() => ChangeDirection(EnumDirection.Down)">↓</button>
+<button @onclick="async () => await ChangeDirection(EnumDirection.Up)">↑</button><br />
+<button @onclick="async () => await ChangeDirection(EnumDirection.Left)">←</button>
+<button @onclick="async () => await ChangeDirection(EnumDirection.Right)">←</button>
+<br />
+<button @onclick="async () => await  ChangeDirection(EnumDirection.Down)">↓</button>
 <br />
 
 
@@ -122,11 +123,10 @@
 
     private async Task OnTickAsync(StateModel model)
     {
-        this.stateModel = model;
+        stateModel = model;
 
         Console.WriteLine($"{model.Coordinates.First()}");
-        await ChangeDirection(EnumDirection.Down);
-        
+
         ticknumber++;
         StateHasChanged();
     }
