@@ -8,29 +8,40 @@
 
 <PageTitle>Game test</PageTitle>
 
-@Storage.GameState
-@hubConnection.State
+@if (gameState == EnumGameState.Initializing)
+{
+    @hubConnection.State
 
-<button @onclick="Start" disabled="@(!IsConnected)">Connect?</button>
+    <button @onclick="Start" disabled="@(!IsConnected)">Connect?</button>
+}
 
-<hr>
+@if (gameState == EnumGameState.Starting)
+{
+    <p>Game is starting...</p>
+}
 
-<ul id="idList">
-    
-</ul>
+@if (gameState == EnumGameState.Running)
+{
+    <p>Game screen:</p> // gonna make a table once everythings working
+    <p>Tick number: @ticknumber</p>
 
-<button @onclick="StateChanged" disabled="@(!IsConnected)">Update</button>
+
+}
+<br />
+<button @onclick="() => ChangeDirection(EnumDirection.Up)">↑</button><br />
+<button @onclick="() => ChangeDirection(EnumDirection.Left)">←</button>
+<button @onclick="() => ChangeDirection(EnumDirection.Right)">←</button><br />
+<button @onclick="() => ChangeDirection(EnumDirection.Down)">↓</button>
+<br />
 
 
-<button></button>
-<button></button>
-<button></button>
-<button></button>
 
 @code {
     private HubConnection? hubConnection;
     private List<string> connectedIds = new List<string>();
-
+    private int ticknumber = 0;
+    EnumDirection playerDirection = EnumDirection.Right;
+    private EnumGameState gameState = EnumGameState.Initializing;
 
     private StateModel stateModel = new (EnumGameState.Initializing, new ());
 
@@ -42,6 +53,13 @@
             .Build();
 
         hubConnection.On<StateModel>("Tick", OnTickAsync);
+
+        hubConnection.On<EnumGameState>("Starting", state =>
+        {
+            Console.WriteLine(state);
+            gameState = state;
+            StateHasChanged();
+        });
 
         try
         {
@@ -72,18 +90,8 @@
                 Console.WriteLine(ex.Message + " (Start())");
             }
         }
-    }
-
-    private async Task StateChanged()
-    {
-        Console.WriteLine("whatdahel");
-        hubConnection = new HubConnectionBuilder()
-            .WithUrl(Navigation.ToAbsoluteUri("/gamehub"))
-            .Build();
-
-        await hubConnection.StartAsync();
         StateHasChanged();
-    }
+    } 
 
     public bool IsConnected =>
         hubConnection?.State == HubConnectionState.Connected;
@@ -96,10 +104,30 @@
         }
     }
 
+    private async Task ChangeDirection(EnumDirection direction)
+    {
+        if (hubConnection is not null)
+        {
+            try
+            {
+                await hubConnection.InvokeAsync("OnChangeDirection", direction);
+                Console.WriteLine(direction);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message + " (ChangeDirection())");
+            }
+        }
+    }
+
     private async Task OnTickAsync(StateModel model)
     {
         this.stateModel = model;
 
+        Console.WriteLine($"{model.Coordinates.First()}");
+        await ChangeDirection(EnumDirection.Down);
+        
+        ticknumber++;
         StateHasChanged();
     }
 }

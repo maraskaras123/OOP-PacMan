@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.Connections.Features;
+using Microsoft.AspNetCore.SignalR;
 using PacMan.Server.Hubs;
 using PacMan.Shared;
 using PacMan.Shared.Enums;
 using PacMan.Shared.Models;
+using System.Drawing;
 
 namespace PacMan.Server.Services
 {
@@ -34,12 +36,19 @@ namespace PacMan.Server.Services
 
         public void Start()
         {
-            Storage.GameState = EnumGameState.Starting;
+            Storage.GameState = EnumGameState.Starting; 
         }
 
         public async Task Init()
         {
             Storage.GameState = EnumGameState.Running;
+
+            foreach (string connectionID in Storage.ConnectionIds)
+            {
+                GameStateModel stateModel = new GameStateModel();
+                Storage.State.Add(connectionID, stateModel);
+            }
+
             while (Storage.GameState != EnumGameState.Finished)
             {
                 await Task.WhenAll(Task.Delay(1000), Tick());
@@ -55,7 +64,6 @@ namespace PacMan.Server.Services
         // Game Logic
         private async Task Tick()
         {
-            //Console.WriteLine(Storage.GameState);
             foreach (var state in Storage.State)
             {
                 switch (state.Value.Direction) 
@@ -63,25 +71,29 @@ namespace PacMan.Server.Services
                     case EnumDirection.Up:
                         if (state.Value.Coordinates.Y > 0)
                         {
-                            state.Value.Coordinates.Offset(0, -1);
+                            //state.Value.Coordinates.Offset(0, -1); this doesnt update the initial value
+                            state.Value.Coordinates = new Point(state.Value.Coordinates.X, state.Value.Coordinates.Y - 1);
                         }
                         break;
                     case EnumDirection.Right:
                         if (state.Value.Coordinates.X < 30)
                         {
-                            state.Value.Coordinates.Offset(1, 0);
+                            //state.Value.Coordinates.Offset(1, 0);
+                            state.Value.Coordinates = new Point(state.Value.Coordinates.X + 1, state.Value.Coordinates.Y);
                         }
                         break;
                     case EnumDirection.Down:
                         if (state.Value.Coordinates.Y < 30)
                         {
-                            state.Value.Coordinates.Offset(0, 1);
+                            //state.Value.Coordinates.Offset(0, 1);
+                            state.Value.Coordinates = new Point(state.Value.Coordinates.X, state.Value.Coordinates.Y + 1);
                         }
                         break;
                     case EnumDirection.Left:
                         if (state.Value.Coordinates.X > 0)
                         {
-                            state.Value.Coordinates.Offset(-1, 0);
+                            //state.Value.Coordinates.Offset(-1, 0);
+                            state.Value.Coordinates = new Point(state.Value.Coordinates.X - 1, state.Value.Coordinates.Y);
                         }
                         break;
                 }

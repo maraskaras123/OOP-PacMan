@@ -9,7 +9,7 @@ namespace PacMan.Server.Hubs
     public interface IGameHubClient
     {
         Task RegisteredUserId(int userId);
-        Task Starting();
+        Task Starting(EnumGameState gameState);
         Task Tick(StateModel state);
         
     }
@@ -44,27 +44,21 @@ namespace PacMan.Server.Hubs
         public async Task OnStartAsync()
         {
             _gameService.Start();
-            await Clients.All.Starting();
-            await Task.Delay(5000);
+            await Clients.All.Starting(EnumGameState.Starting); // i dont think this did anything before?
+            await Task.Delay(1000);            
             await _gameService.Init();
         }
 
         [HubMethodName("OnChangeDirection")]
         public async Task ChangeDirectionAsync(EnumDirection direction)
         {
-            //var user = Storage.ConnectionIds.FirstOrDefault(s => s == Context.ConnectionId);
-            if (!Storage.ConnectionIds.Contains(Context.ConnectionId))
-            {
-                throw new ArgumentException();
-            }
-            
+            //_gameService.ChangeDirectionAsync(direction, Context.ConnectionId);
             if (!Enum.IsDefined<EnumDirection>(direction))
             {
                 throw new ArgumentException();
             }
 
-            Storage.State[Context.ConnectionId].Direction = direction;
-
+            Storage.State[Context.ConnectionId] = new() { Direction = direction, Coordinates = Storage.State[Context.ConnectionId].Coordinates };
         }
     }
 }
