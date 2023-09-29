@@ -8,6 +8,15 @@
 
 <PageTitle>Game test</PageTitle>
 
+<style>
+    /* Define a CSS class to style the table cells */
+    .grid-cell {
+        border: 1px solid #000; /* Add border styles as needed */
+        width: 20px; /* Adjust cell width as needed */
+        height: 20px; /* Adjust cell height as needed */
+    }
+</style>
+
 @if (gameState == EnumGameState.Initializing)
 {
     @hubConnection.State
@@ -22,15 +31,36 @@
 
 @if (gameState == EnumGameState.Running)
 {
-    <p>Game screen:</p> // gonna make a table once everythings working
+    <p>Game:</p> // gonna make a table once everythings working
     <p>Tick number: @ticknumber</p>
 
+    <table>
+        @for (int i = 0; i < 31; i++)
+        {
+            <tr>
+                @for (int j = 0; j < 31; j++)
+                {
+                    <td class="grid-cell">
+                        @foreach (string coordinate in playerCoordinates)
+                        {
+                            string[] coordinateSplit = coordinate.Split(',');
+                            if (int.Parse(coordinateSplit[1]) == j && int.Parse(coordinateSplit[2]) == i)
+                            {
+                                <p>@coordinateSplit[0]</p>
+                            }
+                        }
+                    </td>
+                }
+            </tr>
+        }
 
+        
+    </table>
 }
 <br />
 <button @onclick="async () => await ChangeDirection(EnumDirection.Up)">↑</button><br />
 <button @onclick="async () => await ChangeDirection(EnumDirection.Left)">←</button>
-<button @onclick="async () => await ChangeDirection(EnumDirection.Right)">←</button>
+<button @onclick="async () => await ChangeDirection(EnumDirection.Right)">→</button>
 <br />
 <button @onclick="async () => await  ChangeDirection(EnumDirection.Down)">↓</button>
 <br />
@@ -43,6 +73,7 @@
     private int ticknumber = 0;
     EnumDirection playerDirection = EnumDirection.Right;
     private EnumGameState gameState = EnumGameState.Initializing;
+    private List<string> playerCoordinates = new List<string>();
 
     private StateModel stateModel = new (EnumGameState.Initializing, new ());
 
@@ -124,8 +155,11 @@
     private async Task OnTickAsync(StateModel model)
     {
         stateModel = model;
+        gameState = model.GameState;
 
-        Console.WriteLine($"{model.Coordinates.First()}");
+        playerCoordinates = model.Coordinates;
+
+        Console.WriteLine(model.Coordinates.First());
 
         ticknumber++;
         StateHasChanged();
