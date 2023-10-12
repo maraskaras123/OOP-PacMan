@@ -5,15 +5,19 @@
 @using PacMan.Shared;
 @using PacMan.Shared.Models;
 @using PacMan.Shared.Enums;
+@using System.Drawing;
 
 <PageTitle>Game test</PageTitle>
 
 <style>
     /* Define a CSS class to style the table cells */
     .grid-cell {
-        border: 1px solid #000; /* Add border styles as needed */
-        width: 20px; /* Adjust cell width as needed */
-        height: 20px; /* Adjust cell height as needed */
+        border: 1px solid #000;
+        /* Add border styles as needed */
+        width: 20px;
+        /* Adjust cell width as needed */
+        height: 20px;
+        /* Adjust cell height as needed */
     }
 </style>
 
@@ -31,9 +35,9 @@
 
 @if (gameState == EnumGameState.Running)
 {
-    <p>Game:</p> // gonna make a table once everythings working
+    <p>Game:</p>
+    // gonna make a table once everythings working
     <p>Tick number: @ticknumber</p>
-
     <table>
         @for (int i = 0; i < 31; i++)
         {
@@ -41,6 +45,10 @@
                 @for (int j = 0; j < 31; j++)
                 {
                     <td class="grid-cell">
+                        @if (walls.Contains(new Point(j, i)))
+                        {
+                            <p>w</p>
+                        }
                         @foreach (string coordinate in playerCoordinates)
                         {
                             string[] coordinateSplit = coordinate.Split(',');
@@ -54,7 +62,7 @@
             </tr>
         }
 
-        
+
     </table>
 }
 <br />
@@ -65,9 +73,8 @@
 <button @onclick="async () => await  ChangeDirection(EnumDirection.Down)">↓</button>
 <br />
 
-
-
 @code {
+    private List<Point> walls = new List<Point>();
     private HubConnection? hubConnection;
     private List<string> connectedIds = new List<string>();
     private int ticknumber = 0;
@@ -75,15 +82,15 @@
     private EnumGameState gameState = EnumGameState.Initializing;
     private List<string> playerCoordinates = new List<string>();
 
-    private StateModel stateModel = new (EnumGameState.Initializing, new ());
+    private StateModel stateModel = new(EnumGameState.Initializing, new());
 
 
     protected override async Task OnInitializedAsync()
     {
         hubConnection = new HubConnectionBuilder()
-            .WithUrl(Navigation.ToAbsoluteUri("/gamehub"))
-            .Build();
-
+        .WithUrl(Navigation.ToAbsoluteUri("/gamehub"))
+        .Build();
+        hubConnection.On<List<Point>>("ReceiveWalls", OnReceiveWalls);
         hubConnection.On<StateModel>("Tick", OnTickAsync);
 
         hubConnection.On<EnumGameState>("Starting", state =>
@@ -102,6 +109,11 @@
             Console.WriteLine(ex);
         }
         StateHasChanged();
+        if (hubConnection.State == HubConnectionState.Connected)
+        {
+            await Task.Delay(3000);
+            await hubConnection.InvokeAsync("SendWalls");
+        }
     }
 
     private async Task Start()
@@ -123,10 +135,15 @@
             }
         }
         StateHasChanged();
-    } 
+    }
+    private async Task OnReceiveWalls(List<Point> receivedWalls)
+    {
+        walls = receivedWalls;
+        StateHasChanged();
+    }
 
     public bool IsConnected =>
-        hubConnection?.State == HubConnectionState.Connected;
+    hubConnection?.State == HubConnectionState.Connected;
 
     public async ValueTask DisposeAsync()
     {

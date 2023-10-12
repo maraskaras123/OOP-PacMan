@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using System.Drawing;
+using Microsoft.AspNetCore.SignalR;
 using PacMan.Server.Services;
 using PacMan.Shared;
 using PacMan.Shared.Enums;
@@ -11,7 +12,8 @@ namespace PacMan.Server.Hubs
         Task RegisteredUserId(int userId);
         Task Starting(EnumGameState gameState);
         Task Tick(StateModel state);
-        
+        Task ReceiveWalls(List<Point> walls);
+
     }
 
     public class GameHub : Hub<IGameHubClient>
@@ -28,6 +30,10 @@ namespace PacMan.Server.Hubs
             await Clients.Caller.RegisteredUserId(Storage.ConnectionIds.Count);
             Storage.ConnectionIds.Add(Context.ConnectionId);
             await base.OnConnectedAsync();
+        }
+        public async Task SendWalls()
+        {
+            await Clients.Caller.ReceiveWalls(Storage.Walls);
         }
 
         public override async Task OnDisconnectedAsync(Exception? exception)

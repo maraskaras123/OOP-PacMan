@@ -36,7 +36,24 @@ namespace PacMan.Server.Services
 
         public void Start()
         {
-            Storage.GameState = EnumGameState.Starting; 
+            InitializeWalls();
+            Storage.GameState = EnumGameState.Starting;
+        }
+
+        private void InitializeWalls()
+        {
+            Storage.Walls.Add(new Point(2, 0));
+            Storage.Walls.Add(new Point(1, 2));
+            Storage.Walls.Add(new Point(0, 2));
+            Storage.Walls.Add(new Point(5, 2));
+            Storage.Walls.Add(new Point(6, 2));
+            Storage.Walls.Add(new Point(7, 2));
+            Storage.Walls.Add(new Point(5, 5));
+            Storage.Walls.Add(new Point(9, 2));
+            Storage.Walls.Add(new Point(3, 4));
+            Storage.Walls.Add(new Point(7, 7));
+            Storage.Walls.Add(new Point(8, 8));
+            Storage.Walls.Add(new Point(9, 9));
         }
 
         public async Task Init()
@@ -66,31 +83,31 @@ namespace PacMan.Server.Services
         {
             foreach (var state in Storage.State)
             {
-                switch (state.Value.Direction) 
-                { 
+                switch (state.Value.Direction)
+                {
                     case EnumDirection.Up:
-                        if (state.Value.Coordinates.Y > 0)
+                        if (state.Value.Coordinates.Y > 0 && !Storage.Walls.Contains(new Point(state.Value.Coordinates.X, state.Value.Coordinates.Y - 1)))
                         {
                             //state.Value.Coordinates.Offset(0, -1); this doesnt update the initial value
                             state.Value.Coordinates = new Point(state.Value.Coordinates.X, state.Value.Coordinates.Y - 1);
                         }
                         break;
                     case EnumDirection.Right:
-                        if (state.Value.Coordinates.X < 30)
+                        if (state.Value.Coordinates.X < 30 && !Storage.Walls.Contains(new Point(state.Value.Coordinates.X + 1, state.Value.Coordinates.Y)))
                         {
                             //state.Value.Coordinates.Offset(1, 0);
                             state.Value.Coordinates = new Point(state.Value.Coordinates.X + 1, state.Value.Coordinates.Y);
                         }
                         break;
                     case EnumDirection.Down:
-                        if (state.Value.Coordinates.Y < 30)
+                        if (state.Value.Coordinates.Y < 30 && !Storage.Walls.Contains(new Point(state.Value.Coordinates.X, state.Value.Coordinates.Y + 1)))
                         {
                             //state.Value.Coordinates.Offset(0, 1);
                             state.Value.Coordinates = new Point(state.Value.Coordinates.X, state.Value.Coordinates.Y + 1);
                         }
                         break;
                     case EnumDirection.Left:
-                        if (state.Value.Coordinates.X > 0)
+                        if (state.Value.Coordinates.X > 0 && !Storage.Walls.Contains(new Point(state.Value.Coordinates.X - 1, state.Value.Coordinates.Y)))
                         {
                             //state.Value.Coordinates.Offset(-1, 0);
                             state.Value.Coordinates = new Point(state.Value.Coordinates.X - 1, state.Value.Coordinates.Y);
