@@ -7,17 +7,18 @@ namespace PacMan.Shared.Models
     {
         public EnumDirection Direction { get; set; }
         public Point Coordinates { get; set; }
+        public int Points { get; set; }
+
         public GameStateModel()
         {
-            this.Direction = EnumDirection.Right;
-            this.Coordinates = new Point(0, 0);
+            Direction = EnumDirection.Right;
+            Coordinates = new (0, 0);
         }
 
         public GameStateModel(Point point)
         {
-            this.Direction = EnumDirection.Right;
-            this.Coordinates = point;
+            Direction = EnumDirection.Right;
+            Coordinates = point;
         }
     }
-   
 }

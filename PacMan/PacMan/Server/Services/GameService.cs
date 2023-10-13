@@ -1,10 +1,8 @@
-﻿using Microsoft.AspNetCore.Connections.Features;
-using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.SignalR;
 using PacMan.Server.Hubs;
 using PacMan.Shared;
 using PacMan.Shared.Enums;
 using PacMan.Shared.Models;
-using System.Drawing;
 
 namespace PacMan.Server.Services
 {
@@ -30,7 +28,7 @@ namespace PacMan.Server.Services
             Storage.GameState = EnumGameState.Initializing;
             if (clearPlayers ?? false)
             {
-                Storage.ConnectionIds = new();
+                Storage.ConnectionIds = new ();
             }
         }
 
@@ -42,34 +40,31 @@ namespace PacMan.Server.Services
 
         private void InitializeWalls()
         {
-            Storage.Walls.Add(new Point(2, 0));
-            Storage.Walls.Add(new Point(1, 2));
-            Storage.Walls.Add(new Point(0, 2));
-            Storage.Walls.Add(new Point(5, 2));
-            Storage.Walls.Add(new Point(6, 2));
-            Storage.Walls.Add(new Point(7, 2));
-            Storage.Walls.Add(new Point(5, 5));
-            Storage.Walls.Add(new Point(9, 2));
-            Storage.Walls.Add(new Point(3, 4));
-            Storage.Walls.Add(new Point(7, 7));
-            Storage.Walls.Add(new Point(8, 8));
-            Storage.Walls.Add(new Point(9, 9));
+            var rnd = new Random();
+            for (var i = 0; i < 50; i++)
+            {
+                Storage.Walls.Add(new (rnd.Next(0, 30), rnd.Next(0, 30)));
+            }
         }
 
         public async Task Init()
         {
             Storage.GameState = EnumGameState.Running;
+            Storage.Ticks = 0;
 
-            foreach (string connectionID in Storage.ConnectionIds)
+            foreach (var connectionId in Storage.ConnectionIds)
             {
-                GameStateModel stateModel = new GameStateModel();
-                Storage.State.Add(connectionID, stateModel);
+                var stateModel = new GameStateModel();
+                Storage.State.Add(connectionId, stateModel);
             }
 
             while (Storage.GameState != EnumGameState.Finished)
             {
                 await Task.WhenAll(Task.Delay(1000), Tick());
-                await _hubContext.Clients.All.Tick(new StateModel(Storage.GameState, Storage.State.Select((x, index) => $"{index},{x.Value.Coordinates.X},{x.Value.Coordinates.Y}").ToList()));
+                await _hubContext.Clients.All.Tick(new (Storage.GameState,
+                    Storage.State.Select((x, index) => $"{index},{x.Value.Coordinates.X},{x.Value.Coordinates.Y}")
+                        .ToList(),
+                    Storage.State.Select(x => x.Value.Points).ToList()));
             }
         }
 
@@ -86,36 +81,51 @@ namespace PacMan.Server.Services
                 switch (state.Value.Direction)
                 {
                     case EnumDirection.Up:
-                        if (state.Value.Coordinates.Y > 0 && !Storage.Walls.Contains(new Point(state.Value.Coordinates.X, state.Value.Coordinates.Y - 1)))
+                        if (state.Value.Coordinates.Y > 0 &&
+                            !Storage.Walls.Contains(new (state.Value.Coordinates.X, state.Value.Coordinates.Y - 1)))
                         {
                             //state.Value.Coordinates.Offset(0, -1); this doesnt update the initial value
-                            state.Value.Coordinates = new Point(state.Value.Coordinates.X, state.Value.Coordinates.Y - 1);
+                            state.Value.Coordinates = new (state.Value.Coordinates.X, state.Value.Coordinates.Y - 1);
                         }
+
                         break;
                     case EnumDirection.Right:
-                        if (state.Value.Coordinates.X < 30 && !Storage.Walls.Contains(new Point(state.Value.Coordinates.X + 1, state.Value.Coordinates.Y)))
+                        if (state.Value.Coordinates.X < 30 &&
+                            !Storage.Walls.Contains(new (state.Value.Coordinates.X + 1, state.Value.Coordinates.Y)))
                         {
                             //state.Value.Coordinates.Offset(1, 0);
-                            state.Value.Coordinates = new Point(state.Value.Coordinates.X + 1, state.Value.Coordinates.Y);
+                            state.Value.Coordinates = new (state.Value.Coordinates.X + 1, state.Value.Coordinates.Y);
                         }
+
                         break;
                     case EnumDirection.Down:
-                        if (state.Value.Coordinates.Y < 30 && !Storage.Walls.Contains(new Point(state.Value.Coordinates.X, state.Value.Coordinates.Y + 1)))
+                        if (state.Value.Coordinates.Y < 30 &&
+                            !Storage.Walls.Contains(new (state.Value.Coordinates.X, state.Value.Coordinates.Y + 1)))
                         {
                             //state.Value.Coordinates.Offset(0, 1);
-                            state.Value.Coordinates = new Point(state.Value.Coordinates.X, state.Value.Coordinates.Y + 1);
+                            state.Value.Coordinates = new (state.Value.Coordinates.X, state.Value.Coordinates.Y + 1);
                         }
+
                         break;
                     case EnumDirection.Left:
-                        if (state.Value.Coordinates.X > 0 && !Storage.Walls.Contains(new Point(state.Value.Coordinates.X - 1, state.Value.Coordinates.Y)))
+                        if (state.Value.Coordinates.X > 0 &&
+                            !Storage.Walls.Contains(new (state.Value.Coordinates.X - 1, state.Value.Coordinates.Y)))
                         {
                             //state.Value.Coordinates.Offset(-1, 0);
-                            state.Value.Coordinates = new Point(state.Value.Coordinates.X - 1, state.Value.Coordinates.Y);
+                            state.Value.Coordinates = new (state.Value.Coordinates.X - 1, state.Value.Coordinates.Y);
                         }
+
                         break;
+                }
+
+                if (Storage.Ticks % 10 == 9)
+                {
+                    state.Value.Points += 1;
                 }
             }
 
+            Storage.Ticks += 1;
+            
         }
     }
 }

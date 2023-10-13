@@ -2,7 +2,6 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @inject NavigationManager Navigation
 @implements IAsyncDisposable
-@using PacMan.Shared;
 @using PacMan.Shared.Models;
 @using PacMan.Shared.Enums;
 @using System.Drawing;
@@ -38,23 +37,24 @@
     <p>Game:</p>
     // gonna make a table once everythings working
     <p>Tick number: @ticknumber</p>
+    <p>Points @points</p>
     <table>
-        @for (int i = 0; i < 31; i++)
+        @for (var i = 0; i < 31; i++)
         {
             <tr>
-                @for (int j = 0; j < 31; j++)
+                @for (var j = 0; j < 31; j++)
                 {
                     <td class="grid-cell">
-                        @if (walls.Contains(new Point(j, i)))
+                        @if (walls.Contains(new(j, i)))
                         {
                             <p>w</p>
                         }
-                        @foreach (string coordinate in playerCoordinates)
+                        @foreach (var coordinate in playerCoordinates)
                         {
-                            string[] coordinateSplit = coordinate.Split(',');
+                            var coordinateSplit = coordinate.Split(',');
                             if (int.Parse(coordinateSplit[1]) == j && int.Parse(coordinateSplit[2]) == i)
                             {
-                                <p>@coordinateSplit[0]</p>
+                                <p style="margin: 0">@coordinateSplit[0]</p>
                             }
                         }
                     </td>
@@ -65,31 +65,31 @@
 
     </table>
 }
-<br />
-<button @onclick="async () => await ChangeDirection(EnumDirection.Up)">↑</button><br />
+<br/>
+<button @onclick="async () => await ChangeDirection(EnumDirection.Up)">↑</button><br/>
 <button @onclick="async () => await ChangeDirection(EnumDirection.Left)">←</button>
 <button @onclick="async () => await ChangeDirection(EnumDirection.Right)">→</button>
-<br />
-<button @onclick="async () => await  ChangeDirection(EnumDirection.Down)">↓</button>
-<br />
+<br/>
+<button @onclick="async () => await ChangeDirection(EnumDirection.Down)">↓</button>
+<br/>
 
 @code {
-    private List<Point> walls = new List<Point>();
+    private List<Point> walls = new();
     private HubConnection? hubConnection;
-    private List<string> connectedIds = new List<string>();
+    private List<string> connectedIds = new();
     private int ticknumber = 0;
+    private int points = 0;
     EnumDirection playerDirection = EnumDirection.Right;
     private EnumGameState gameState = EnumGameState.Initializing;
-    private List<string> playerCoordinates = new List<string>();
+    private List<string> playerCoordinates = new();
 
-    private StateModel stateModel = new(EnumGameState.Initializing, new());
-
+    private StateModel stateModel = new(EnumGameState.Initializing, new(), new());
 
     protected override async Task OnInitializedAsync()
     {
         hubConnection = new HubConnectionBuilder()
-        .WithUrl(Navigation.ToAbsoluteUri("/gamehub"))
-        .Build();
+            .WithUrl(Navigation.ToAbsoluteUri("/gamehub"))
+            .Build();
         hubConnection.On<List<Point>>("ReceiveWalls", OnReceiveWalls);
         hubConnection.On<StateModel>("Tick", OnTickAsync);
 
@@ -136,6 +136,7 @@
         }
         StateHasChanged();
     }
+
     private async Task OnReceiveWalls(List<Point> receivedWalls)
     {
         walls = receivedWalls;
@@ -143,7 +144,7 @@
     }
 
     public bool IsConnected =>
-    hubConnection?.State == HubConnectionState.Connected;
+        hubConnection?.State == HubConnectionState.Connected;
 
     public async ValueTask DisposeAsync()
     {
@@ -175,10 +176,12 @@
         gameState = model.GameState;
 
         playerCoordinates = model.Coordinates;
+        points = model.Points.First();
 
         Console.WriteLine(model.Coordinates.First());
 
         ticknumber++;
         StateHasChanged();
     }
+
 }
