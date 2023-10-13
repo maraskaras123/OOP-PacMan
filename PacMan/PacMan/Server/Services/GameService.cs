@@ -56,6 +56,10 @@ namespace PacMan.Server.Services
             {
                 var stateModel = new GameStateModel();
                 Storage.State.Add(connectionId, stateModel);
+
+
+                await _hubContext.Clients.All.ReceiveWalls(Storage.Walls);
+
             }
 
             while (Storage.GameState != EnumGameState.Finished)

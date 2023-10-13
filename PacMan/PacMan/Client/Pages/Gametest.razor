@@ -47,14 +47,14 @@
                     <td class="grid-cell">
                         @if (walls.Contains(new(j, i)))
                         {
-                            <p>w</p>
+                            <p style="margin: 0; padding: 0;">w</p>
                         }
                         @foreach (var coordinate in playerCoordinates)
                         {
                             var coordinateSplit = coordinate.Split(',');
                             if (int.Parse(coordinateSplit[1]) == j && int.Parse(coordinateSplit[2]) == i)
                             {
-                                <p style="margin: 0">@coordinateSplit[0]</p>
+                                <p style="margin: 0; padding: 0;">@coordinateSplit[0]</p>
                             }
                         }
                     </td>
@@ -109,11 +109,6 @@
             Console.WriteLine(ex);
         }
         StateHasChanged();
-        if (hubConnection.State == HubConnectionState.Connected)
-        {
-            await Task.Delay(3000);
-            await hubConnection.InvokeAsync("SendWalls");
-        }
     }
 
     private async Task Start()
