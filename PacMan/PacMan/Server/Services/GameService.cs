@@ -58,8 +58,6 @@ namespace PacMan.Server.Services
                 {
                     tile.Type = EnumTileType.Wall;
                 }
-
-                //Storage.Walls.Add(new (rnd.Next(0, 30), rnd.Next(0, 30)));
             }
 
         }
@@ -76,12 +74,11 @@ namespace PacMan.Server.Services
 
 
                 await _hubContext.Clients.All.ReceiveTiles(Storage.Tiles);
-
             }
 
             while (Storage.GameState != EnumGameState.Finished)
             {
-                await Task.WhenAll(Task.Delay(400), Tick());
+                await Task.WhenAll(Task.Delay(500), Tick());
                 await _hubContext.Clients.All.ReceiveTiles(Storage.Tiles);
                 await _hubContext.Clients.All.Tick(new (Storage.GameState,
                     Storage.State.Select((x, index) => $"{index},{x.Value.Coordinates.X},{x.Value.Coordinates.Y}")
@@ -164,8 +161,7 @@ namespace PacMan.Server.Services
                 }*/
             }
 
-            Storage.Ticks += 1;
-            
+            Storage.Ticks += 1;            
         }
     }
 }

@@ -32,12 +32,6 @@ namespace PacMan.Server.Hubs
             await base.OnConnectedAsync();
         }
 
-        /*
-        public async Task SendWalls()
-        {
-            await Clients.Caller.ReceiveWalls(Storage.Walls);
-        }*/
-
         public async Task SendTiles()
         {
             await Clients.Caller.ReceiveTiles(Storage.Tiles);

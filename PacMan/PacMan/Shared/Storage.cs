@@ -7,7 +7,6 @@ namespace PacMan.Shared
     public static class Storage
     {
         public static EnumGameState GameState { get; set; } = EnumGameState.Initializing;
-        //public static List<Point> Walls { get; set; } = new ();
 
         public static Dictionary<string, Tile> Tiles = new ();
 

@@ -76,11 +76,9 @@
 <br/>
 
 @code {
-    private List<Point> walls = new();
     private List<Tile> tiles = new();
     private Dictionary<string, Tile> tileDictionary = new Dictionary<string, Tile>();
     private HubConnection? hubConnection;
-    private List<string> connectedIds = new();
     private int ticknumber = 0;
     private int points = 0;
     EnumDirection playerDirection = EnumDirection.Right;
@@ -94,7 +92,6 @@
         hubConnection = new HubConnectionBuilder()
             .WithUrl(Navigation.ToAbsoluteUri("/gamehub"))
             .Build();
-        hubConnection.On<List<Point>>("ReceiveWalls", OnReceiveWalls);
         hubConnection.On<Dictionary<string, Tile>>("ReceiveTiles", OnReceiveTiles);
         hubConnection.On<StateModel>("Tick", OnTickAsync);
 
@@ -137,17 +134,10 @@
         StateHasChanged();
     }
 
-    private async Task OnReceiveWalls(List<Point> receivedWalls)
-    {
-        walls = receivedWalls;
-        StateHasChanged();
-    }
-
     private async Task OnReceiveTiles(Dictionary<string, Tile> receivedTiles)
     {
         tileDictionary = receivedTiles;
         StateHasChanged();
-        Console.WriteLine("tile");
     }
 
     public bool IsConnected =>
@@ -189,9 +179,7 @@
 
         ticknumber++;
         StateHasChanged();
-    }
-
-    
+    }    
 
     private Tile GetTile(int x, int y)
     {
