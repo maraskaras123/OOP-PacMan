@@ -9,7 +9,6 @@
 <PageTitle>Game test</PageTitle>
 
 <style>
-    /* Define a CSS class to style the table cells */
     .grid-cell {
         border: 1px solid #000;
         /* Add border styles as needed */
@@ -24,7 +23,7 @@
 {
     @hubConnection.State
 
-    <button @onclick="Start" disabled="@(!IsConnected)">Connect?</button>
+    <button @onclick="Start" disabled="@(!IsConnected)">Start</button>
 }
 
 @if (gameState == EnumGameState.Starting)
@@ -35,7 +34,6 @@
 @if (gameState == EnumGameState.Running)
 {
     <p>Game:</p>
-    // gonna make a table once everythings working
     <p>Tick number: @ticknumber</p>
     <p>Points @points</p>
     <table>
@@ -45,10 +43,15 @@
                 @for (var j = 0; j < 31; j++)
                 {
                     <td class="grid-cell">
-                        @if (walls.Contains(new(j, i)))
+                        @if (GetTile(j, i).Type == EnumTileType.Wall)
                         {
-                            <p style="margin: 0; padding: 0;">w</p>
+                            <p style="margin: 0; padding: 0;">█</p>
                         }
+                        @if (GetTile(j, i).Type == EnumTileType.Pellet)
+                        {
+                            <p style="margin: 0; padding: 0;">●</p>
+                        }
+                        
                         @foreach (var coordinate in playerCoordinates)
                         {
                             var coordinateSplit = coordinate.Split(',');
@@ -68,13 +71,14 @@
 <br/>
 <button @onclick="async () => await ChangeDirection(EnumDirection.Up)">↑</button><br/>
 <button @onclick="async () => await ChangeDirection(EnumDirection.Left)">←</button>
-<button @onclick="async () => await ChangeDirection(EnumDirection.Right)">→</button>
-<br/>
+<button @onclick="async () => await ChangeDirection(EnumDirection.Right)">→</button><br/>
 <button @onclick="async () => await ChangeDirection(EnumDirection.Down)">↓</button>
 <br/>
 
 @code {
     private List<Point> walls = new();
+    private List<Tile> tiles = new();
+    private Dictionary<string, Tile> tileDictionary = new Dictionary<string, Tile>();
     private HubConnection? hubConnection;
     private List<string> connectedIds = new();
     private int ticknumber = 0;
@@ -91,6 +95,7 @@
             .WithUrl(Navigation.ToAbsoluteUri("/gamehub"))
             .Build();
         hubConnection.On<List<Point>>("ReceiveWalls", OnReceiveWalls);
+        hubConnection.On<Dictionary<string, Tile>>("ReceiveTiles", OnReceiveTiles);
         hubConnection.On<StateModel>("Tick", OnTickAsync);
 
         hubConnection.On<EnumGameState>("Starting", state =>
@@ -126,7 +131,7 @@
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message + " (Start())");
+                Console.WriteLine(ex.Message);
             }
         }
         StateHasChanged();
@@ -136,6 +141,13 @@
     {
         walls = receivedWalls;
         StateHasChanged();
+    }
+
+    private async Task OnReceiveTiles(Dictionary<string, Tile> receivedTiles)
+    {
+        tileDictionary = receivedTiles;
+        StateHasChanged();
+        Console.WriteLine("tile");
     }
 
     public bool IsConnected =>
@@ -160,7 +172,7 @@
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message + " (ChangeDirection())");
+                Console.WriteLine(ex.Message);
             }
         }
     }
@@ -179,4 +191,14 @@
         StateHasChanged();
     }
 
+    
+
+    private Tile GetTile(int x, int y)
+    {
+        if (tileDictionary.TryGetValue($"{x}_{y}", out Tile tile))
+        {
+            return tile;
+        }
+        return new Tile();
+    }
 }

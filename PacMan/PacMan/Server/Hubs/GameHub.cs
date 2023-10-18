@@ -13,7 +13,7 @@ namespace PacMan.Server.Hubs
         Task Starting(EnumGameState gameState);
         Task Tick(StateModel state);
         Task ReceiveWalls(List<Point> walls);
-
+        Task ReceiveTiles(Dictionary<string, Tile> tiles);
     }
 
     public class GameHub : Hub<IGameHubClient>
@@ -31,9 +31,16 @@ namespace PacMan.Server.Hubs
             Storage.ConnectionIds.Add(Context.ConnectionId);
             await base.OnConnectedAsync();
         }
+
+        /*
         public async Task SendWalls()
         {
             await Clients.Caller.ReceiveWalls(Storage.Walls);
+        }*/
+
+        public async Task SendTiles()
+        {
+            await Clients.Caller.ReceiveTiles(Storage.Tiles);
         }
 
         public override async Task OnDisconnectedAsync(Exception? exception)
@@ -51,21 +58,25 @@ namespace PacMan.Server.Hubs
         public async Task OnStartAsync()
         {
             _gameService.Start();
-            await Clients.All.Starting(EnumGameState.Starting); // i dont think this did anything before?
-            await Task.Delay(1000);
+            await Clients.All.Starting(EnumGameState.Starting);
+            await Task.Delay(200);
             Task.Run(_gameService.Init);
         }
 
         [HubMethodName("OnChangeDirection")]
         public async Task ChangeDirectionAsync(EnumDirection direction)
         {
-            //_gameService.ChangeDirectionAsync(direction, Context.ConnectionId);
             if (!Enum.IsDefined<EnumDirection>(direction))
             {
                 throw new ArgumentException();
             }
 
-            Storage.State[Context.ConnectionId] = new() { Direction = direction, Coordinates = Storage.State[Context.ConnectionId].Coordinates };
+            Storage.State[Context.ConnectionId] = new() 
+            { 
+                Direction = direction,
+                Coordinates = Storage.State[Context.ConnectionId].Coordinates, 
+                Points = Storage.State[Context.ConnectionId].Points 
+            };
         }
     }
 }
