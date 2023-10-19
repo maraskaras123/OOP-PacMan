@@ -21,8 +21,12 @@
 
 @if (gameState == EnumGameState.Initializing)
 {
-    @hubConnection.State
-
+    <label>width</label>
+    <input @bind="gridOptions.Width" />
+    <label>height</label>
+    <input @bind="gridOptions.Height" />
+    <label>random tiles</label>
+    <input @bind="gridOptions.RandomTileCount" />
     <button @onclick="Start" disabled="@(!IsConnected)">Start</button>
 }
 
@@ -35,19 +39,29 @@
 {
     <p>Game:</p>
     <p>Tick number: @ticknumber</p>
-    <p>Points @points</p>
+
+    @for (var i = 0; i < points.Count; i++)
+    {
+        <p>Player @(i+1): @points[i] points</p>
+    }
+
     <table>
-        @for (var i = 0; i < 31; i++)
+        @for (var i = 0; i < grid.Height; i++)
         {
             <tr>
-                @for (var j = 0; j < 31; j++)
+                @for (var j = 0; j < grid.Width; j++)
                 {
                     <td class="grid-cell">
-                        @if (GetTile(j, i).Type == EnumTileType.Wall)
+                        <!-- 
+                            im a little confused as to why i gotta do (j, i) instead of (i, j) 
+                            im also a little confused as to why i gotta make i the width and j the height in TileGridBuilder
+                            but these are problems i want to figure out at a different time
+                        -->
+                        @if (grid.GetTile(j, i).Type == EnumTileType.Wall) 
                         {
                             <p style="margin: 0; padding: 0;">█</p>
                         }
-                        @if (GetTile(j, i).Type == EnumTileType.Pellet)
+                        @if (grid.GetTile(j, i).Type == EnumTileType.Pellet)
                         {
                             <p style="margin: 0; padding: 0;">●</p>
                         }
@@ -57,7 +71,7 @@
                             var coordinateSplit = coordinate.Split(',');
                             if (int.Parse(coordinateSplit[1]) == j && int.Parse(coordinateSplit[2]) == i)
                             {
-                                <p style="margin: 0; padding: 0;">@coordinateSplit[0]</p>
+                                <p style="margin: 0; padding: 0;">@(int.Parse(coordinateSplit[0])+1)</p>
                             }
                         }
                     </td>
@@ -75,118 +89,112 @@
 <button @onclick="async () => await ChangeDirection(EnumDirection.Down)">↓</button>
 <br/>
 
-@code {
-    private List<Tile> tiles = new();
-    private Dictionary<string, Tile> tileDictionary = new Dictionary<string, Tile>();
-    private HubConnection? hubConnection;
-    private int ticknumber = 0;
-    private int points = 0;
-    EnumDirection playerDirection = EnumDirection.Right;
-    private EnumGameState gameState = EnumGameState.Initializing;
-    private List<string> playerCoordinates = new();
+        @code {
+        private TileGrid grid = new TileGrid();
+        private TileGridBuilderOptions gridOptions = new TileGridBuilderOptions();
+        private HubConnection? hubConnection;
+        private int ticknumber = 0;
+        private List<int> points = new List<int>();
+        private int width;
+        private int height;
+        private string buildMethod = "Random";
+        EnumDirection playerDirection = EnumDirection.Right;
+        private EnumGameState gameState = EnumGameState.Initializing;
+        private List<string> playerCoordinates = new();
 
-    private StateModel stateModel = new(EnumGameState.Initializing, new(), new());
+        private StateModel stateModel = new(EnumGameState.Initializing, new(), new());
 
-    protected override async Task OnInitializedAsync()
-    {
-        hubConnection = new HubConnectionBuilder()
-            .WithUrl(Navigation.ToAbsoluteUri("/gamehub"))
-            .Build();
-        hubConnection.On<Dictionary<string, Tile>>("ReceiveTiles", OnReceiveTiles);
-        hubConnection.On<StateModel>("Tick", OnTickAsync);
-
-        hubConnection.On<EnumGameState>("Starting", state =>
+        protected override async Task OnInitializedAsync()
         {
-            Console.WriteLine(state);
-            gameState = state;
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(Navigation.ToAbsoluteUri("/gamehub"))
+                .Build();
+            hubConnection.On<TileGrid>("ReceiveGrid", OnReceiveGrid);
+            hubConnection.On<StateModel>("Tick", OnTickAsync);
+
+            hubConnection.On<EnumGameState>("Starting", state =>
+            {
+                Console.WriteLine(state);
+                gameState = state;
+                StateHasChanged();
+            });
+
+            try
+            {
+                await hubConnection.StartAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
             StateHasChanged();
-        });
-
-        try
-        {
-            await hubConnection.StartAsync();
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex);
-        }
-        StateHasChanged();
-    }
 
-    private async Task Start()
-    {
-        if (hubConnection is not null)
+        private async Task Start()
         {
-            try
+            if (hubConnection is not null)
             {
-                if (hubConnection.State == HubConnectionState.Disconnected)
+                try
                 {
-                    await hubConnection.StartAsync();
+                    if (hubConnection.State == HubConnectionState.Disconnected)
+                    {
+                        await hubConnection.StartAsync();
+                    }
+
+                    await hubConnection.InvokeAsync("OnStart", gridOptions);
                 }
-
-                await hubConnection.InvokeAsync("OnStart");
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
+            StateHasChanged();
         }
-        StateHasChanged();
-    }
 
-    private async Task OnReceiveTiles(Dictionary<string, Tile> receivedTiles)
-    {
-        tileDictionary = receivedTiles;
-        StateHasChanged();
-    }
-
-    public bool IsConnected =>
-        hubConnection?.State == HubConnectionState.Connected;
-
-    public async ValueTask DisposeAsync()
-    {
-        if (hubConnection is not null)
+        private async Task OnReceiveGrid(TileGrid receivedGrid)
         {
-            await hubConnection.DisposeAsync();
+            grid = receivedGrid;
+            StateHasChanged();
         }
-    }
 
-    private async Task ChangeDirection(EnumDirection direction)
-    {
-        if (hubConnection is not null)
+        public bool IsConnected =>
+            hubConnection?.State == HubConnectionState.Connected;
+
+        public async ValueTask DisposeAsync()
         {
-            try
+            if (hubConnection is not null)
             {
-                await hubConnection.InvokeAsync("OnChangeDirection", direction);
-                Console.WriteLine(direction);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
+                await hubConnection.DisposeAsync();
             }
         }
-    }
 
-    private async Task OnTickAsync(StateModel model)
-    {
-        stateModel = model;
-        gameState = model.GameState;
+        private async Task ChangeDirection(EnumDirection direction)
+        {
+            if (hubConnection is not null)
+            {
+                try
+                {
+                    await hubConnection.InvokeAsync("OnChangeDirection", direction);
+                    Console.WriteLine(direction);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+            }
+        }
 
-        playerCoordinates = model.Coordinates;
-        points = model.Points.First();
+        private async Task OnTickAsync(StateModel model)
+        {
+            stateModel = model;
+            gameState = model.GameState;
+
+            playerCoordinates = model.Coordinates;
+            points = model.Points;
 
         Console.WriteLine(model.Coordinates.First());
 
         ticknumber++;
         StateHasChanged();
     }    
-
-    private Tile GetTile(int x, int y)
-    {
-        if (tileDictionary.TryGetValue($"{x}_{y}", out Tile tile))
-        {
-            return tile;
-        }
-        return new Tile();
-    }
 }

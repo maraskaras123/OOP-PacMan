@@ -8,7 +8,7 @@ namespace PacMan.Shared.Models
 
         public Tile()
         {
-            this.Type = EnumTileType.Wall;
+            this.Type = EnumTileType.Empty;
         }
 
         public Tile(EnumTileType type)

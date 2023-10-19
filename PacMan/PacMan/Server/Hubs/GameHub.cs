@@ -12,8 +12,7 @@ namespace PacMan.Server.Hubs
         Task RegisteredUserId(int userId);
         Task Starting(EnumGameState gameState);
         Task Tick(StateModel state);
-        Task ReceiveWalls(List<Point> walls);
-        Task ReceiveTiles(Dictionary<string, Tile> tiles);
+        Task ReceiveGrid(TileGrid grid);
     }
 
     public class GameHub : Hub<IGameHubClient>
@@ -32,11 +31,6 @@ namespace PacMan.Server.Hubs
             await base.OnConnectedAsync();
         }
 
-        public async Task SendTiles()
-        {
-            await Clients.Caller.ReceiveTiles(Storage.Tiles);
-        }
-
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
             Storage.ConnectionIds.RemoveAt(Storage.ConnectionIds.FindIndex(s => s == Context.ConnectionId));
@@ -49,9 +43,9 @@ namespace PacMan.Server.Hubs
         }
 
         [HubMethodName("OnStart")]
-        public async Task OnStartAsync()
+        public async Task OnStartAsync(TileGridBuilderOptions gridOptions)
         {
-            _gameService.Start();
+            _gameService.Start(gridOptions);
             await Clients.All.Starting(EnumGameState.Starting);
             await Task.Delay(200);
             Task.Run(_gameService.Init);
@@ -71,6 +65,11 @@ namespace PacMan.Server.Hubs
                 Coordinates = Storage.State[Context.ConnectionId].Coordinates, 
                 Points = Storage.State[Context.ConnectionId].Points 
             };
+        }
+
+        public async Task SendGrid()
+        {
+            await Clients.Caller.ReceiveGrid(Storage.Grid);
         }
     }
 }
