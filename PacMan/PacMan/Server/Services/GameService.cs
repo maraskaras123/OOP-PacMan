@@ -9,7 +9,7 @@ namespace PacMan.Server.Services
     public interface IGameService
     {
         void Reset(bool? clearPlayers);
-        void Start();
+        void Start(TileGridBuilderOptions gridOptions);
         Task Init();
         void Finish();
     }
@@ -32,34 +32,15 @@ namespace PacMan.Server.Services
             }
         }
 
-        public void Start()
+        public void Start(TileGridBuilderOptions gridOptions)
         {
-            InitializeWalls();
             Storage.GameState = EnumGameState.Starting;
-        }
-
-        private void InitializeWalls()
-        {
-            var rnd = new Random();
-            for (int i = 0; i < 31; i++)
-            {
-                for (int j = 0; j < 31; j++)
-                {
-
-                    Storage.Tiles.Add($"{i}_{j}",new Tile(EnumTileType.Pellet));
-                }
-            }
-            for (var i = 0; i < 50; i++)
-            {
-                int r1 = rnd.Next(0, 30);
-                int r2 = rnd.Next(0, 30);
-                var tile = GetTile(r1, r2);
-                if (tile != null)
-                {
-                    tile.Type = EnumTileType.Wall;
-                }
-            }
-
+            TileGrid grid = new TileGridBuilder()
+                .WithWidth(gridOptions.Width)
+                .WithHeight(gridOptions.Height)
+                .WithRandomTiles(gridOptions.RandomTileCount)
+                .Build();
+            Storage.Grid = grid;
         }
 
         public async Task Init()
@@ -73,13 +54,13 @@ namespace PacMan.Server.Services
                 Storage.State.Add(connectionId, stateModel);
 
 
-                await _hubContext.Clients.All.ReceiveTiles(Storage.Tiles);
+                await _hubContext.Clients.All.ReceiveGrid(Storage.Grid);
             }
 
             while (Storage.GameState != EnumGameState.Finished)
             {
                 await Task.WhenAll(Task.Delay(500), Tick());
-                await _hubContext.Clients.All.ReceiveTiles(Storage.Tiles);
+                await _hubContext.Clients.All.ReceiveGrid(Storage.Grid);
                 await _hubContext.Clients.All.Tick(new (Storage.GameState,
                     Storage.State.Select((x, index) => $"{index},{x.Value.Coordinates.X},{x.Value.Coordinates.Y}")
                         .ToList(),
@@ -90,15 +71,6 @@ namespace PacMan.Server.Services
         public void Finish()
         {
             Storage.GameState = EnumGameState.Finished;
-        }
-
-        private Tile GetTile(int x, int y)
-        {
-            if (Storage.Tiles.TryGetValue($"{x}_{y}", out Tile tile))
-            {
-                return tile;
-            }
-            return new Tile();
         }
 
         // Game Logic
@@ -112,39 +84,38 @@ namespace PacMan.Server.Services
                 switch (state.Value.Direction)
                 {
                     case EnumDirection.Up:
-                        desiredTile = GetTile(currentX, currentY - 1);
+                        desiredTile = Storage.Grid.GetTile(currentX, currentY - 1);
                         if (state.Value.Coordinates.Y > 0 &&
                             desiredTile.Type != EnumTileType.Wall)
                         {
-                            //state.Value.Coordinates.Offset(0, -1); this doesnt update the initial value
-                            state.Value.Coordinates = new (state.Value.Coordinates.X, state.Value.Coordinates.Y - 1);
+                            state.Value.Coordinates = new (currentX, currentY - 1);
                         }
                         break;
                     case EnumDirection.Right:
-                        desiredTile = GetTile(currentX + 1, currentY);
-                        if (state.Value.Coordinates.X < 30 &&
+                        desiredTile = Storage.Grid.GetTile(currentX + 1, currentY);
+                        if (state.Value.Coordinates.X < Storage.Grid.Width - 1 &&
                             desiredTile.Type != EnumTileType.Wall)
                         {
                             //state.Value.Coordinates.Offset(1, 0);
-                            state.Value.Coordinates = new (state.Value.Coordinates.X + 1, state.Value.Coordinates.Y);
+                            state.Value.Coordinates = new (currentX + 1, currentY);
                         }
                         break;
                     case EnumDirection.Down:
-                        desiredTile = GetTile(currentX, currentY + 1);
-                        if (state.Value.Coordinates.Y < 30 &&
+                        desiredTile = Storage.Grid.GetTile(currentX, currentY + 1);
+                        if (state.Value.Coordinates.Y < Storage.Grid.Height - 1 &&
                             desiredTile.Type != EnumTileType.Wall)
                         {
                             //state.Value.Coordinates.Offset(0, 1);
-                            state.Value.Coordinates = new (state.Value.Coordinates.X, state.Value.Coordinates.Y + 1);
+                            state.Value.Coordinates = new (currentX, currentY + 1);
                         }
                         break;
                     case EnumDirection.Left:
-                        desiredTile = GetTile(currentX - 1, currentY);
+                        desiredTile = Storage.Grid.GetTile(currentX - 1, currentY);
                         if (state.Value.Coordinates.X > 0 &&
                             desiredTile.Type != EnumTileType.Wall)
                         {
                             //state.Value.Coordinates.Offset(-1, 0);
-                            state.Value.Coordinates = new (state.Value.Coordinates.X - 1, state.Value.Coordinates.Y);
+                            state.Value.Coordinates = new (currentX - 1, currentY);
                         }
                         break;
                 }
@@ -153,14 +124,7 @@ namespace PacMan.Server.Services
                     desiredTile.SetToEmpty();
                     state.Value.Points += 1;
                 }
-
-                /*
-                if (Storage.Ticks % 10 == 9)
-                {
-                    state.Value.Points += 1;
-                }*/
             }
-
             Storage.Ticks += 1;            
         }
     }

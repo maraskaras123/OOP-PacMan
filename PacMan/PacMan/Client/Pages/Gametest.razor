@@ -21,8 +21,12 @@
 
 @if (gameState == EnumGameState.Initializing)
 {
-    @hubConnection.State
-
+    <label>width</label>
+    <input @bind="gridOptions.Width" />
+    <label>height</label>
+    <input @bind="gridOptions.Height" />
+    <label>random tiles</label>
+    <input @bind="gridOptions.RandomTileCount" />
     <button @onclick="Start" disabled="@(!IsConnected)">Start</button>
 }
 
@@ -37,17 +41,22 @@
     <p>Tick number: @ticknumber</p>
     <p>Points @points</p>
     <table>
-        @for (var i = 0; i < 31; i++)
+        @for (var i = 0; i < grid.Height; i++)
         {
             <tr>
-                @for (var j = 0; j < 31; j++)
+                @for (var j = 0; j < grid.Width; j++)
                 {
                     <td class="grid-cell">
-                        @if (GetTile(j, i).Type == EnumTileType.Wall)
+                        <!-- 
+                            im a little confused as to why i gotta do (j, i) instead of (i, j) 
+                            im also a little confused as to why i gotta make i the width and j the height in TileGridBuilder
+                            but these are problems i want to figure out at a different time
+                        -->
+                        @if (grid.GetTile(j, i).Type == EnumTileType.Wall) 
                         {
                             <p style="margin: 0; padding: 0;">█</p>
                         }
-                        @if (GetTile(j, i).Type == EnumTileType.Pellet)
+                        @if (grid.GetTile(j, i).Type == EnumTileType.Pellet)
                         {
                             <p style="margin: 0; padding: 0;">●</p>
                         }
@@ -76,11 +85,14 @@
 <br/>
 
 @code {
-    private List<Tile> tiles = new();
-    private Dictionary<string, Tile> tileDictionary = new Dictionary<string, Tile>();
+    private TileGrid grid = new TileGrid();
+    private TileGridBuilderOptions gridOptions = new TileGridBuilderOptions();
     private HubConnection? hubConnection;
     private int ticknumber = 0;
     private int points = 0;
+    private int width;
+    private int height;
+    private string buildMethod = "Random";
     EnumDirection playerDirection = EnumDirection.Right;
     private EnumGameState gameState = EnumGameState.Initializing;
     private List<string> playerCoordinates = new();
@@ -92,7 +104,7 @@
         hubConnection = new HubConnectionBuilder()
             .WithUrl(Navigation.ToAbsoluteUri("/gamehub"))
             .Build();
-        hubConnection.On<Dictionary<string, Tile>>("ReceiveTiles", OnReceiveTiles);
+        hubConnection.On<TileGrid>("ReceiveGrid", OnReceiveGrid);
         hubConnection.On<StateModel>("Tick", OnTickAsync);
 
         hubConnection.On<EnumGameState>("Starting", state =>
@@ -124,7 +136,7 @@
                     await hubConnection.StartAsync();
                 }
 
-                await hubConnection.InvokeAsync("OnStart");
+                await hubConnection.InvokeAsync("OnStart", gridOptions);
             }
             catch (Exception ex)
             {
@@ -134,9 +146,9 @@
         StateHasChanged();
     }
 
-    private async Task OnReceiveTiles(Dictionary<string, Tile> receivedTiles)
+    private async Task OnReceiveGrid(TileGrid receivedGrid)
     {
-        tileDictionary = receivedTiles;
+        grid = receivedGrid;
         StateHasChanged();
     }
 
@@ -180,13 +192,4 @@
         ticknumber++;
         StateHasChanged();
     }    
-
-    private Tile GetTile(int x, int y)
-    {
-        if (tileDictionary.TryGetValue($"{x}_{y}", out Tile tile))
-        {
-            return tile;
-        }
-        return new Tile();
-    }
 }
