@@ -1,4 +1,4 @@
-﻿using System.Drawing;
+using System.Drawing;
 using Microsoft.AspNetCore.SignalR;
 using PacMan.Server.Hubs;
 using PacMan.Shared;
@@ -12,7 +12,7 @@ namespace PacMan.Server.Services
     public interface IGameService
     {
         void Reset(bool? clearPlayers);
-        void Start();
+        void Start(TileGridBuilderOptions gridOptions);
         Task Init();
         void Finish();
     }
@@ -39,12 +39,19 @@ namespace PacMan.Server.Services
             }
         }
 
-        public void Start()
+        public void Start(TileGridBuilderOptions gridOptions)
         {
             InitializeWalls();
             CreateEnemies();
             Storage.GameState = EnumGameState.Starting;
+            TileGrid grid = new TileGridBuilder()
+                .WithWidth(gridOptions.Width)
+                .WithHeight(gridOptions.Height)
+                .WithRandomTiles(gridOptions.RandomTileCount)
+                .Build();
+            Storage.Grid = grid;
         }
+        
         private void CreateEnemies()
         {
             var redGhost = _redGhostFactory.CreateEnemy();
@@ -53,15 +60,6 @@ namespace PacMan.Server.Services
             blueGhost.Position = new Point(9,9);
             Storage.Enemies.Add(redGhost);
             Storage.Enemies.Add(blueGhost);
-        }
-
-        private void InitializeWalls()
-        {
-            var rnd = new Random();
-            for (var i = 0; i < 50; i++)
-            {
-                Storage.Walls.Add(new (rnd.Next(0, 30), rnd.Next(0, 30)));
-            }
         }
 
         public async Task Init()
@@ -74,11 +72,15 @@ namespace PacMan.Server.Services
             {
                 var stateModel = new GameStateModel();
                 Storage.State.Add(connectionId, stateModel);
+
+
+                await _hubContext.Clients.All.ReceiveGrid(Storage.Grid);
             }
 
             while (Storage.GameState != EnumGameState.Finished)
             {
-                await Task.WhenAll(Task.Delay(1000), Tick());
+                await Task.WhenAll(Task.Delay(500), Tick());
+                await _hubContext.Clients.All.ReceiveGrid(Storage.Grid);
                 await _hubContext.Clients.All.Tick(new (Storage.GameState,
                     Storage.State.Select((x, index) => $"{index},{x.Value.Coordinates.X},{x.Value.Coordinates.Y}")
                         .ToList(),
@@ -100,48 +102,50 @@ namespace PacMan.Server.Services
             }
             foreach (var state in Storage.State)
             {
+                int currentX = state.Value.Coordinates.X;
+                int currentY = state.Value.Coordinates.Y;
+                Tile desiredTile = new Tile();
                 switch (state.Value.Direction)
                 {
                     case EnumDirection.Up:
+                        desiredTile = Storage.Grid.GetTile(currentX, currentY - 1);
                         if (state.Value.Coordinates.Y > 0 &&
-                            !Storage.Walls.Contains(new (state.Value.Coordinates.X, state.Value.Coordinates.Y - 1)))
+                            desiredTile.Type != EnumTileType.Wall)
                         {
-                            //state.Value.Coordinates.Offset(0, -1); this doesnt update the initial value
-                            state.Value.Coordinates = new (state.Value.Coordinates.X, state.Value.Coordinates.Y - 1);
+                            state.Value.Coordinates = new (currentX, currentY - 1);
                         }
-
                         break;
                     case EnumDirection.Right:
-                        if (state.Value.Coordinates.X < 30 &&
-                            !Storage.Walls.Contains(new (state.Value.Coordinates.X + 1, state.Value.Coordinates.Y)))
+                        desiredTile = Storage.Grid.GetTile(currentX + 1, currentY);
+                        if (state.Value.Coordinates.X < Storage.Grid.Width - 1 &&
+                            desiredTile.Type != EnumTileType.Wall)
                         {
                             //state.Value.Coordinates.Offset(1, 0);
-                            state.Value.Coordinates = new (state.Value.Coordinates.X + 1, state.Value.Coordinates.Y);
+                            state.Value.Coordinates = new (currentX + 1, currentY);
                         }
-
                         break;
                     case EnumDirection.Down:
-                        if (state.Value.Coordinates.Y < 30 &&
-                            !Storage.Walls.Contains(new (state.Value.Coordinates.X, state.Value.Coordinates.Y + 1)))
+                        desiredTile = Storage.Grid.GetTile(currentX, currentY + 1);
+                        if (state.Value.Coordinates.Y < Storage.Grid.Height - 1 &&
+                            desiredTile.Type != EnumTileType.Wall)
                         {
                             //state.Value.Coordinates.Offset(0, 1);
-                            state.Value.Coordinates = new (state.Value.Coordinates.X, state.Value.Coordinates.Y + 1);
+                            state.Value.Coordinates = new (currentX, currentY + 1);
                         }
-
                         break;
                     case EnumDirection.Left:
+                        desiredTile = Storage.Grid.GetTile(currentX - 1, currentY);
                         if (state.Value.Coordinates.X > 0 &&
-                            !Storage.Walls.Contains(new (state.Value.Coordinates.X - 1, state.Value.Coordinates.Y)))
+                            desiredTile.Type != EnumTileType.Wall)
                         {
                             //state.Value.Coordinates.Offset(-1, 0);
-                            state.Value.Coordinates = new (state.Value.Coordinates.X - 1, state.Value.Coordinates.Y);
+                            state.Value.Coordinates = new (currentX - 1, currentY);
                         }
-
                         break;
                 }
-
-                if (Storage.Ticks % 10 == 9)
+                if (desiredTile.Type == EnumTileType.Pellet)
                 {
+                    desiredTile.SetToEmpty();
                     state.Value.Points += 1;
                 }
             }
@@ -152,8 +156,6 @@ namespace PacMan.Server.Services
             }).ToList();
             await _hubContext.Clients.All.ReceiveEnemies(enemyData);
             Storage.Ticks += 1;
-            Storage.Ticks += 1;
-            
         }
     }
 }

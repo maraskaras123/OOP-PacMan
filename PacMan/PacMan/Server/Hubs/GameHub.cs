@@ -1,4 +1,4 @@
-﻿using System.Drawing;
+using System.Drawing;
 using Microsoft.AspNetCore.SignalR;
 using PacMan.Server.Services;
 using PacMan.Shared;
@@ -12,9 +12,8 @@ namespace PacMan.Server.Hubs
         Task RegisteredUserId(int userId);
         Task Starting(EnumGameState gameState);
         Task Tick(StateModel state);
-        Task ReceiveWalls(List<Point> walls);
+        Task ReceiveGrid(TileGrid grid);
         Task ReceiveEnemies(List<EnemyModel> enemies);
-
     }
 
     public class GameHub : Hub<IGameHubClient>
@@ -32,21 +31,7 @@ namespace PacMan.Server.Hubs
             Storage.ConnectionIds.Add(Context.ConnectionId);
             await base.OnConnectedAsync();
         }
-        public async Task SendWalls()
-        {
-            await Clients.Caller.ReceiveWalls(Storage.Walls);
-        }
-        public async Task SendEnemies()
-        {
-            var enemyData = Storage.Enemies.Select(e => new EnemyModel
-            {
-                Position = e.Position,
-                Character = e.Character
-            }).ToList();
-
-            await Clients.Caller.ReceiveEnemies(enemyData);
-        }
-
+        
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
             Storage.ConnectionIds.RemoveAt(Storage.ConnectionIds.FindIndex(s => s == Context.ConnectionId));
@@ -59,26 +44,46 @@ namespace PacMan.Server.Hubs
         }
 
         [HubMethodName("OnStart")]
-        public async Task OnStartAsync()
+        public async Task OnStartAsync(TileGridBuilderOptions gridOptions)
         {
-            _gameService.Start();
-            await Clients.All.Starting(EnumGameState.Starting); // i dont think this did anything before?
-            
+            _gameService.Start(gridOptions);
+            await Clients.All.Starting(EnumGameState.Starting);
+            await sendGrid();
             await SendEnemies();
-            await SendWalls();
+            await Task.Delay(200);
             Task.Run(_gameService.Init);
         }
 
         [HubMethodName("OnChangeDirection")]
         public async Task ChangeDirectionAsync(EnumDirection direction)
         {
-            //_gameService.ChangeDirectionAsync(direction, Context.ConnectionId);
             if (!Enum.IsDefined<EnumDirection>(direction))
             {
                 throw new ArgumentException();
             }
 
-            Storage.State[Context.ConnectionId] = new() { Direction = direction, Coordinates = Storage.State[Context.ConnectionId].Coordinates };
+            Storage.State[Context.ConnectionId] = new() 
+            { 
+                Direction = direction,
+                Coordinates = Storage.State[Context.ConnectionId].Coordinates, 
+                Points = Storage.State[Context.ConnectionId].Points 
+            };
+        }
+
+        public async Task SendGrid()
+        {
+            await Clients.Caller.ReceiveGrid(Storage.Grid);
+        }
+        
+        public async Task SendEnemies()
+        {
+            var enemyData = Storage.Enemies.Select(e => new EnemyModel
+            {
+                Position = e.Position,
+                Character = e.Character
+            }).ToList();
+
+            await Clients.Caller.ReceiveEnemies(enemyData);
         }
     }
 }
