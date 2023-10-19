@@ -24,7 +24,8 @@ namespace PacMan.Shared.Models
         {
             this.Tiles = new Dictionary<string, Tile>();
             var rnd = new Random();
-            for (int i = 0; i < Width; i++)
+            // intuitively it makes no sense to me why i is width and j is height but here we are
+            for (int i = 0; i < Width; i++) 
             {
                 for (int j = 0; j < Height; j++)
                 {
