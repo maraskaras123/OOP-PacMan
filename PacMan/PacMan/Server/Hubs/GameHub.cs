@@ -48,7 +48,7 @@ namespace PacMan.Server.Hubs
         {
             _gameService.Start(gridOptions);
             await Clients.All.Starting(EnumGameState.Starting);
-            await sendGrid();
+            await SendGrid();
             await SendEnemies();
             await Task.Delay(200);
             Task.Run(_gameService.Init);

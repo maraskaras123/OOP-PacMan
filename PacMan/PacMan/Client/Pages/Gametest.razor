@@ -59,14 +59,21 @@
                 {
                     <p style="margin: 0; padding: 0;">█</p>
                 }
-                @if (grid.GetTile(j, i).Type == EnumTileType.Pellet)
+                @if (grid.GetTile(j, i).Type == EnumTileType.Pellet && enemyAtPosition == null)
                 {
                     <p style="margin: 0; padding: 0;">●</p>
                 }
                 
                 @if (enemyAtPosition != null)
                 {
-                    <p>@enemyAtPosition.Character</p>
+                    @if (enemyAtPosition.Character == 'B')
+                    {
+                        <p style="color: dodgerblue">@enemyAtPosition.Character</p>
+                    }
+                    @if (enemyAtPosition.Character == 'R')
+                    {
+                        <p style="color: indianred">@enemyAtPosition.Character</p>
+                    }
                 }
 
                 @foreach (var coordinate in playerCoordinates)
@@ -194,7 +201,7 @@
         gameState = model.GameState;
 
         playerCoordinates = model.Coordinates;
-        points = model.Points.;
+        points = model.Points;
         Console.WriteLine(model.Coordinates.First());
         ticknumber++;
         StateHasChanged();

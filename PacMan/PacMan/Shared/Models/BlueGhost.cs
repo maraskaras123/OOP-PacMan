@@ -81,7 +81,8 @@ namespace PacMan.Shared.Models
                 foreach (var neighborPos in GetNeighbors(currentNode.Position))
                 {
                     // I'm assuming Storage.Walls is accessible from this scope
-                    if (Storage.Walls.Contains(neighborPos))
+                    // Sorry i changed it up, maybe i should revert back to points
+                    if (Storage.Grid.GetTile(neighborPos.X, neighborPos.Y).Type == Enums.EnumTileType.Wall)
                         continue;
 
                     var neighbor = new Node { Position = neighborPos, Parent = currentNode };

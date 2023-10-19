@@ -41,7 +41,6 @@ namespace PacMan.Server.Services
 
         public void Start(TileGridBuilderOptions gridOptions)
         {
-            InitializeWalls();
             CreateEnemies();
             Storage.GameState = EnumGameState.Starting;
             TileGrid grid = new TileGridBuilder()

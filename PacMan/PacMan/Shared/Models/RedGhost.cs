@@ -33,7 +33,8 @@ namespace PacMan.Shared.Models
             var nextPosition = new Point(Position.X + currentDirection.X, Position.Y + currentDirection.Y);
 
             // Assuming Storage.Walls is accessible from this scope
-            if (!Storage.Walls.Contains(nextPosition)&&(CanMoveTo(nextPosition)))
+            // Sorry i changed it up, maybe i should revert back to points
+            if (Storage.Grid.GetTile(nextPosition.X, nextPosition.Y).Type != Enums.EnumTileType.Wall&&(CanMoveTo(nextPosition)))
             {
                 Position = nextPosition;
             }
@@ -42,22 +43,22 @@ namespace PacMan.Shared.Models
                 currentDirection = ChooseRandomDirection();
             }
         }
-            private bool CanMoveTo(Point nextPosition)
-    {
-        // Check out-of-bounds conditions
-        if (nextPosition.X < 0 || nextPosition.X > 30 || nextPosition.Y < 0 || nextPosition.Y > 30)
+        private bool CanMoveTo(Point nextPosition)
         {
-            return false;
-        }
+            // Check out-of-bounds conditions
+            if (nextPosition.X < 0 || nextPosition.X > 30 || nextPosition.Y < 0 || nextPosition.Y > 30)
+            {
+                return false;
+            }
 
-        // Check if the next position is a wall
-        if (Storage.Walls.Contains(nextPosition))
-        {
-            return false;
-        }
+            // Check if the next position is a wall
+            if (Storage.Grid.GetTile(nextPosition.X, nextPosition.Y).Type == Enums.EnumTileType.Wall)
+            {
+                return false;
+            }
 
-        return true;
-    }
+            return true;
+        }
 
         private Point ChooseRandomDirection()
         {
