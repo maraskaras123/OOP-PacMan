@@ -8,6 +8,7 @@ namespace PacMan.Shared
     {
         public static EnumGameState GameState { get; set; } = EnumGameState.Initializing;
         public static List<Point> Walls { get; set; } = new ();
+        public static List<IEnemy> Enemies = new List<IEnemy>();
 
         public static List<string> ConnectionIds { get; set; } = new ();
         public static Dictionary<string, GameStateModel> State { get; set; } = new ();

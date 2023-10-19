@@ -13,6 +13,7 @@ namespace PacMan.Server.Hubs
         Task Starting(EnumGameState gameState);
         Task Tick(StateModel state);
         Task ReceiveWalls(List<Point> walls);
+        Task ReceiveEnemies(List<EnemyModel> enemies);
 
     }
 
@@ -35,6 +36,16 @@ namespace PacMan.Server.Hubs
         {
             await Clients.Caller.ReceiveWalls(Storage.Walls);
         }
+        public async Task SendEnemies()
+        {
+            var enemyData = Storage.Enemies.Select(e => new EnemyModel
+            {
+                Position = e.Position,
+                Character = e.Character
+            }).ToList();
+
+            await Clients.Caller.ReceiveEnemies(enemyData);
+        }
 
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
@@ -52,7 +63,9 @@ namespace PacMan.Server.Hubs
         {
             _gameService.Start();
             await Clients.All.Starting(EnumGameState.Starting); // i dont think this did anything before?
-            await Task.Delay(1000);
+            
+            await SendEnemies();
+            await SendWalls();
             Task.Run(_gameService.Init);
         }
 

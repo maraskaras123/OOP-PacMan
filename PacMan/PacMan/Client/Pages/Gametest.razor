@@ -39,42 +39,50 @@
     <p>Tick number: @ticknumber</p>
     <p>Points @points</p>
     <table>
-        @for (var i = 0; i < 31; i++)
+   @for (var i = 0; i < 31; i++)
+{
+    <tr>
+        @for (var j = 0; j < 31; j++)
         {
-            <tr>
-                @for (var j = 0; j < 31; j++)
+            EnemyModel enemyAtPosition = enemies.FirstOrDefault(e => e.Position == new Point(j, i));
+
+            <td class="grid-cell">
+                @if (walls.Contains(new(j, i)))
                 {
-                    <td class="grid-cell">
-                        @if (walls.Contains(new(j, i)))
-                        {
-                            <p>w</p>
-                        }
-                        @foreach (var coordinate in playerCoordinates)
-                        {
-                            var coordinateSplit = coordinate.Split(',');
-                            if (int.Parse(coordinateSplit[1]) == j && int.Parse(coordinateSplit[2]) == i)
-                            {
-                                <p style="margin: 0">@coordinateSplit[0]</p>
-                            }
-                        }
-                    </td>
+                    <p>w</p>
                 }
-            </tr>
+                
+                @if (enemyAtPosition != null)
+                {
+                    <p>@enemyAtPosition.Character</p>
+                }
+
+                @foreach (var coordinate in playerCoordinates)
+                {
+                    var coordinateSplit = coordinate.Split(',');
+                    if (int.Parse(coordinateSplit[1]) == j && int.Parse(coordinateSplit[2]) == i)
+                    {
+                        <p style="margin: 0">@coordinateSplit[0]</p>
+                    }
+                }
+            </td>
         }
-
-
-    </table>
+    </tr>
 }
-<br/>
-<button @onclick="async () => await ChangeDirection(EnumDirection.Up)">↑</button><br/>
+</table>
+
+}
+<br />
+<button @onclick="async () => await ChangeDirection(EnumDirection.Up)">↑</button><br />
 <button @onclick="async () => await ChangeDirection(EnumDirection.Left)">←</button>
 <button @onclick="async () => await ChangeDirection(EnumDirection.Right)">→</button>
-<br/>
+<br />
 <button @onclick="async () => await ChangeDirection(EnumDirection.Down)">↓</button>
-<br/>
+<br />
 
 @code {
     private List<Point> walls = new();
+    private List<EnemyModel> enemies = new();
     private HubConnection? hubConnection;
     private List<string> connectedIds = new();
     private int ticknumber = 0;
@@ -82,15 +90,14 @@
     EnumDirection playerDirection = EnumDirection.Right;
     private EnumGameState gameState = EnumGameState.Initializing;
     private List<string> playerCoordinates = new();
-
     private StateModel stateModel = new(EnumGameState.Initializing, new(), new());
-
     protected override async Task OnInitializedAsync()
     {
         hubConnection = new HubConnectionBuilder()
-            .WithUrl(Navigation.ToAbsoluteUri("/gamehub"))
-            .Build();
+        .WithUrl(Navigation.ToAbsoluteUri("/gamehub"))
+        .Build();
         hubConnection.On<List<Point>>("ReceiveWalls", OnReceiveWalls);
+        hubConnection.On<List<EnemyModel>>("ReceiveEnemies", OnReceiveEnemies);
         hubConnection.On<StateModel>("Tick", OnTickAsync);
 
         hubConnection.On<EnumGameState>("Starting", state =>
@@ -126,7 +133,6 @@
                 {
                     await hubConnection.StartAsync();
                 }
-
                 await hubConnection.InvokeAsync("OnStart");
             }
             catch (Exception ex)
@@ -138,14 +144,19 @@
     }
 
     private async Task OnReceiveWalls(List<Point> receivedWalls)
+
     {
         walls = receivedWalls;
         StateHasChanged();
     }
+    private async Task OnReceiveEnemies(List<EnemyModel> receivedEnemies)
+    {
+        enemies = receivedEnemies;
+        StateHasChanged();
 
+    }
     public bool IsConnected =>
-        hubConnection?.State == HubConnectionState.Connected;
-
+    hubConnection?.State == HubConnectionState.Connected;
     public async ValueTask DisposeAsync()
     {
         if (hubConnection is not null)
@@ -177,11 +188,8 @@
 
         playerCoordinates = model.Coordinates;
         points = model.Points.First();
-
         Console.WriteLine(model.Coordinates.First());
-
         ticknumber++;
         StateHasChanged();
     }
-
 }
