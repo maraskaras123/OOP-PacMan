@@ -1,7 +1,10 @@
-﻿using Microsoft.AspNetCore.SignalR;
+using System.Drawing;
+using Microsoft.AspNetCore.SignalR;
 using PacMan.Server.Hubs;
 using PacMan.Shared;
 using PacMan.Shared.Enums;
+using PacMan.Shared.Factories;
+using PacMan.Shared.Factories.PacMan.Shared.Factories;
 using PacMan.Shared.Models;
 
 namespace PacMan.Server.Services
@@ -17,9 +20,13 @@ namespace PacMan.Server.Services
     public class GameService : IGameService
     {
         private readonly IHubContext<GameHub, IGameHubClient> _hubContext;
+        private EnemyFactory _redGhostFactory;
+        private EnemyFactory _blueGhostFactory;
 
         public GameService(IHubContext<GameHub, IGameHubClient> hubContext)
         {
+            _redGhostFactory = new RedGhostFactory();
+            _blueGhostFactory = new BlueGhostFactory();
             _hubContext = hubContext;
         }
 
@@ -34,6 +41,7 @@ namespace PacMan.Server.Services
 
         public void Start(TileGridBuilderOptions gridOptions)
         {
+            CreateEnemies();
             Storage.GameState = EnumGameState.Starting;
             TileGrid grid = new TileGridBuilder()
                 .WithWidth(gridOptions.Width)
@@ -42,9 +50,20 @@ namespace PacMan.Server.Services
                 .Build();
             Storage.Grid = grid;
         }
+        
+        private void CreateEnemies()
+        {
+            var redGhost = _redGhostFactory.CreateEnemy();
+            var blueGhost = _blueGhostFactory.CreateEnemy();
+            redGhost.Position = new Point(10,10);
+            blueGhost.Position = new Point(9,9);
+            Storage.Enemies.Add(redGhost);
+            Storage.Enemies.Add(blueGhost);
+        }
 
         public async Task Init()
         {
+            
             Storage.GameState = EnumGameState.Running;
             Storage.Ticks = 0;
 
@@ -76,6 +95,10 @@ namespace PacMan.Server.Services
         // Game Logic
         private async Task Tick()
         {
+            foreach(var enemy in Storage.Enemies)
+            {
+                enemy.Move(Storage.State);
+            }
             foreach (var state in Storage.State)
             {
                 int currentX = state.Value.Coordinates.X;
@@ -125,7 +148,13 @@ namespace PacMan.Server.Services
                     state.Value.Points += 1;
                 }
             }
-            Storage.Ticks += 1;            
+            var enemyData = Storage.Enemies.Select(e => new EnemyModel
+            {
+                Position = e.Position,
+                Character = e.Character
+            }).ToList();
+            await _hubContext.Clients.All.ReceiveEnemies(enemyData);
+            Storage.Ticks += 1;
         }
     }
 }

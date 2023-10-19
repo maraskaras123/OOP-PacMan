@@ -1,4 +1,4 @@
-﻿@page "/gametest"
+@page "/gametest"
 @using Microsoft.AspNetCore.SignalR.Client
 @inject NavigationManager Navigation
 @implements IAsyncDisposable
@@ -9,6 +9,7 @@
 <PageTitle>Game test</PageTitle>
 
 <style>
+    /* Define a CSS class to style the table cells */
     .grid-cell {
         border: 1px solid #000;
         /* Add border styles as needed */
@@ -46,155 +47,163 @@
     }
 
     <table>
-        @for (var i = 0; i < grid.Height; i++)
+   @for (var i = 0; i < grid.Height; i++)
+{
+    <tr>
+        @for (var j = 0; j < grid.Width; j++)
         {
-            <tr>
-                @for (var j = 0; j < grid.Width; j++)
+            EnemyModel enemyAtPosition = enemies.FirstOrDefault(e => e.Position == new Point(j, i));
+
+            <td class="grid-cell">
+                @if (grid.GetTile(j, i).Type == EnumTileType.Wall) 
                 {
-                    <td class="grid-cell">
-                        <!-- 
-                            im a little confused as to why i gotta do (j, i) instead of (i, j) 
-                            im also a little confused as to why i gotta make i the width and j the height in TileGridBuilder
-                            but these are problems i want to figure out at a different time
-                        -->
-                        @if (grid.GetTile(j, i).Type == EnumTileType.Wall) 
-                        {
-                            <p style="margin: 0; padding: 0;">█</p>
-                        }
-                        @if (grid.GetTile(j, i).Type == EnumTileType.Pellet)
-                        {
-                            <p style="margin: 0; padding: 0;">●</p>
-                        }
-                        
-                        @foreach (var coordinate in playerCoordinates)
-                        {
-                            var coordinateSplit = coordinate.Split(',');
-                            if (int.Parse(coordinateSplit[1]) == j && int.Parse(coordinateSplit[2]) == i)
-                            {
-                                <p style="margin: 0; padding: 0;">@(int.Parse(coordinateSplit[0])+1)</p>
-                            }
-                        }
-                    </td>
+                    <p style="margin: 0; padding: 0;">█</p>
                 }
-            </tr>
+                @if (grid.GetTile(j, i).Type == EnumTileType.Pellet && enemyAtPosition == null)
+                {
+                    <p style="margin: 0; padding: 0;">●</p>
+                }
+                
+                @if (enemyAtPosition != null)
+                {
+                    @if (enemyAtPosition.Character == 'B')
+                    {
+                        <p style="color: dodgerblue">@enemyAtPosition.Character</p>
+                    }
+                    @if (enemyAtPosition.Character == 'R')
+                    {
+                        <p style="color: indianred">@enemyAtPosition.Character</p>
+                    }
+                }
+
+                @foreach (var coordinate in playerCoordinates)
+                {
+                    var coordinateSplit = coordinate.Split(',');
+                    if (int.Parse(coordinateSplit[1]) == j && int.Parse(coordinateSplit[2]) == i)
+                    {
+                        <p style="margin: 0">@(int.Parse(coordinateSplit[0])+1)</p>
+                    }
+                }
+            </td>
         }
-
-
-    </table>
+    </tr>
 }
-<br/>
-<button @onclick="async () => await ChangeDirection(EnumDirection.Up)">↑</button><br/>
+</table>
+
+}
+<br />
+<button @onclick="async () => await ChangeDirection(EnumDirection.Up)">↑</button><br />
 <button @onclick="async () => await ChangeDirection(EnumDirection.Left)">←</button>
-<button @onclick="async () => await ChangeDirection(EnumDirection.Right)">→</button><br/>
+<button @onclick="async () => await ChangeDirection(EnumDirection.Right)">→</button><br />
 <button @onclick="async () => await ChangeDirection(EnumDirection.Down)">↓</button>
-<br/>
+<br />
 
-        @code {
-        private TileGrid grid = new TileGrid();
-        private TileGridBuilderOptions gridOptions = new TileGridBuilderOptions();
-        private HubConnection? hubConnection;
-        private int ticknumber = 0;
-        private List<int> points = new List<int>();
-        private int width;
-        private int height;
-        private string buildMethod = "Random";
-        EnumDirection playerDirection = EnumDirection.Right;
-        private EnumGameState gameState = EnumGameState.Initializing;
-        private List<string> playerCoordinates = new();
+@code {
+    private TileGrid grid = new TileGrid();
+    private TileGridBuilderOptions gridOptions = new TileGridBuilderOptions();
+    private List<EnemyModel> enemies = new();
+    private HubConnection? hubConnection;
+    private List<string> connectedIds = new();
+    private int ticknumber = 0;
+    private List<int> points = new List<int>();
+    EnumDirection playerDirection = EnumDirection.Right;
+    private EnumGameState gameState = EnumGameState.Initializing;
+    private List<string> playerCoordinates = new();
+    private StateModel stateModel = new(EnumGameState.Initializing, new(), new());
+      
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+        .WithUrl(Navigation.ToAbsoluteUri("/gamehub"))
+        .Build();
+        hubConnection.On<TileGrid>("ReceiveGrid", OnReceiveGrid);
+        hubConnection.On<List<EnemyModel>>("ReceiveEnemies", OnReceiveEnemies);
+        hubConnection.On<StateModel>("Tick", OnTickAsync);
 
-        private StateModel stateModel = new(EnumGameState.Initializing, new(), new());
-
-        protected override async Task OnInitializedAsync()
+        hubConnection.On<EnumGameState>("Starting", state =>
         {
-            hubConnection = new HubConnectionBuilder()
-                .WithUrl(Navigation.ToAbsoluteUri("/gamehub"))
-                .Build();
-            hubConnection.On<TileGrid>("ReceiveGrid", OnReceiveGrid);
-            hubConnection.On<StateModel>("Tick", OnTickAsync);
+            Console.WriteLine(state);
+            gameState = state;
+            StateHasChanged();
+        });
 
-            hubConnection.On<EnumGameState>("Starting", state =>
-            {
-                Console.WriteLine(state);
-                gameState = state;
-                StateHasChanged();
-            });
+        try
+        {
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+        }
+        StateHasChanged();
+    }
 
+    private async Task Start()
+    {
+        if (hubConnection is not null)
+        {
             try
             {
-                await hubConnection.StartAsync();
+                if (hubConnection.State == HubConnectionState.Disconnected)
+                {
+                    await hubConnection.StartAsync();
+                }
+                await hubConnection.InvokeAsync("OnStart", gridOptions);
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
+                Console.WriteLine(ex.Message + " (Start())");
             }
-            StateHasChanged();
         }
+        StateHasChanged();
+    }
 
-        private async Task Start()
+    private async Task OnReceiveGrid(TileGrid receivedGrid)
+    {
+        grid = receivedGrid;
+        StateHasChanged();
+    }
+    private async Task OnReceiveEnemies(List<EnemyModel> receivedEnemies)
+    {
+        enemies = receivedEnemies;
+        StateHasChanged();
+
+    }
+    public bool IsConnected =>
+      hubConnection?.State == HubConnectionState.Connected;
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
         {
-            if (hubConnection is not null)
+            await hubConnection.DisposeAsync();
+        }
+    }
+
+    private async Task ChangeDirection(EnumDirection direction)
+    {
+        if (hubConnection is not null)
+        {
+            try
             {
-                try
-                {
-                    if (hubConnection.State == HubConnectionState.Disconnected)
-                    {
-                        await hubConnection.StartAsync();
-                    }
-
-                    await hubConnection.InvokeAsync("OnStart", gridOptions);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message);
-                }
+                await hubConnection.InvokeAsync("OnChangeDirection", direction);
+                Console.WriteLine(direction);
             }
-            StateHasChanged();
-        }
-
-        private async Task OnReceiveGrid(TileGrid receivedGrid)
-        {
-            grid = receivedGrid;
-            StateHasChanged();
-        }
-
-        public bool IsConnected =>
-            hubConnection?.State == HubConnectionState.Connected;
-
-        public async ValueTask DisposeAsync()
-        {
-            if (hubConnection is not null)
+            catch (Exception ex)
             {
-                await hubConnection.DisposeAsync();
+                Console.WriteLine(ex.Message + " (ChangeDirection())");
             }
         }
+    }
 
-        private async Task ChangeDirection(EnumDirection direction)
-        {
-            if (hubConnection is not null)
-            {
-                try
-                {
-                    await hubConnection.InvokeAsync("OnChangeDirection", direction);
-                    Console.WriteLine(direction);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message);
-                }
-            }
-        }
+    private async Task OnTickAsync(StateModel model)
+    {
+        stateModel = model;
+        gameState = model.GameState;
 
-        private async Task OnTickAsync(StateModel model)
-        {
-            stateModel = model;
-            gameState = model.GameState;
-
-            playerCoordinates = model.Coordinates;
-            points = model.Points;
-
+        playerCoordinates = model.Coordinates;
+        points = model.Points;
         Console.WriteLine(model.Coordinates.First());
-
         ticknumber++;
         StateHasChanged();
-    }    
+    }
 }
