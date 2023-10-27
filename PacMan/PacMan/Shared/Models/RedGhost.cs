@@ -23,6 +23,7 @@ namespace PacMan.Shared.Models
         public void Move(Dictionary<string, GameStateModel> playerStates)
         {
             ticksSinceLastDirectionChange++;
+            var storage = Storage.GetInstance();
 
             if (ticksSinceLastDirectionChange >= 4)
             {
@@ -34,7 +35,7 @@ namespace PacMan.Shared.Models
 
             // Assuming Storage.Walls is accessible from this scope
             // Sorry i changed it up, maybe i should revert back to points
-            if (Storage.Grid.GetTile(nextPosition.X, nextPosition.Y).Type != Enums.EnumTileType.Wall&&(CanMoveTo(nextPosition)))
+            if (storage.Grid.GetTile(nextPosition.X, nextPosition.Y).Type != Enums.EnumTileType.Wall&&(CanMoveTo(nextPosition)))
             {
                 Position = nextPosition;
             }
@@ -45,6 +46,7 @@ namespace PacMan.Shared.Models
         }
         private bool CanMoveTo(Point nextPosition)
         {
+            var storage = Storage.GetInstance();
             // Check out-of-bounds conditions
             if (nextPosition.X < 0 || nextPosition.X > 30 || nextPosition.Y < 0 || nextPosition.Y > 30)
             {
@@ -52,7 +54,7 @@ namespace PacMan.Shared.Models
             }
 
             // Check if the next position is a wall
-            if (Storage.Grid.GetTile(nextPosition.X, nextPosition.Y).Type == Enums.EnumTileType.Wall)
+            if (storage.Grid.GetTile(nextPosition.X, nextPosition.Y).Type == Enums.EnumTileType.Wall)
             {
                 return false;
             }

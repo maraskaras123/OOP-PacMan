@@ -54,6 +54,7 @@ namespace PacMan.Shared.Models
 
         private List<Point> AStar(Point start, Point end)
         {
+            var storage = Storage.GetInstance();
             var openList = new List<Node>();
             var closedList = new List<Node>();
 
@@ -82,7 +83,7 @@ namespace PacMan.Shared.Models
                 {
                     // I'm assuming Storage.Walls is accessible from this scope
                     // Sorry i changed it up, maybe i should revert back to points
-                    if (Storage.Grid.GetTile(neighborPos.X, neighborPos.Y).Type == Enums.EnumTileType.Wall)
+                    if (storage.Grid.GetTile(neighborPos.X, neighborPos.Y).Type == Enums.EnumTileType.Wall)
                         continue;
 
                     var neighbor = new Node { Position = neighborPos, Parent = currentNode };
