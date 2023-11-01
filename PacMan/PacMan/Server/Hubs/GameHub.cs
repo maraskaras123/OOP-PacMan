@@ -1,4 +1,3 @@
-using System.Drawing;
 using Microsoft.AspNetCore.SignalR;
 using PacMan.Server.Services;
 using PacMan.Shared;
@@ -27,16 +26,18 @@ namespace PacMan.Server.Hubs
 
         public override async Task OnConnectedAsync()
         {
-            await Clients.Caller.RegisteredUserId(Storage.ConnectionIds.Count);
-            Storage.ConnectionIds.Add(Context.ConnectionId);
+            var storage = Storage.GetInstance();
+            await Clients.Caller.RegisteredUserId(storage.ConnectionIds.Count);
+            storage.ConnectionIds.Add(Context.ConnectionId);
             await base.OnConnectedAsync();
         }
         
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
-            Storage.ConnectionIds.RemoveAt(Storage.ConnectionIds.FindIndex(s => s == Context.ConnectionId));
-            Storage.State.Remove(Context.ConnectionId);
-            if (!Storage.ConnectionIds.Any())
+            var storage = Storage.GetInstance();
+            storage.ConnectionIds.RemoveAt(storage.ConnectionIds.FindIndex(s => s == Context.ConnectionId));
+            storage.State.Remove(Context.ConnectionId);
+            if (!storage.ConnectionIds.Any())
             {
                 _gameService.Finish();
             }
@@ -62,22 +63,23 @@ namespace PacMan.Server.Hubs
                 throw new ArgumentException();
             }
 
-            Storage.State[Context.ConnectionId] = new() 
+            var storage = Storage.GetInstance();
+            storage.State[Context.ConnectionId] = new() 
             { 
                 Direction = direction,
-                Coordinates = Storage.State[Context.ConnectionId].Coordinates, 
-                Points = Storage.State[Context.ConnectionId].Points 
+                Coordinates = storage.State[Context.ConnectionId].Coordinates, 
+                Points = storage.State[Context.ConnectionId].Points 
             };
         }
 
         public async Task SendGrid()
         {
-            await Clients.Caller.ReceiveGrid(Storage.Grid);
+            await Clients.Caller.ReceiveGrid(Storage.GetInstance().Grid);
         }
         
         public async Task SendEnemies()
         {
-            var enemyData = Storage.Enemies.Select(e => new EnemyModel
+            var enemyData = Storage.GetInstance().Enemies.Select(e => new EnemyModel
             {
                 Position = e.Position,
                 Character = e.Character
