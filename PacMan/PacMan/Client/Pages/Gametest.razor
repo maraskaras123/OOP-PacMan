@@ -1,7 +1,9 @@
 @page "/gametest"
 @using Microsoft.AspNetCore.SignalR.Client
 @inject NavigationManager Navigation
+@inject StartCommand startCommand
 @implements IAsyncDisposable
+@using PacMan.Client.Classes;
 @using PacMan.Shared.Models;
 @using PacMan.Shared.Enums;
 @using System.Drawing;
@@ -110,7 +112,7 @@
     private EnumGameState gameState = EnumGameState.Initializing;
     private List<string> playerCoordinates = new();
     private StateModel stateModel = new(EnumGameState.Initializing, new(), new());
-      
+
     protected override async Task OnInitializedAsync()
     {
         hubConnection = new HubConnectionBuilder()
@@ -140,20 +142,9 @@
 
     private async Task Start()
     {
-        if (hubConnection is not null)
+        if (hubConnection is not null && gridOptions is not null)
         {
-            try
-            {
-                if (hubConnection.State == HubConnectionState.Disconnected)
-                {
-                    await hubConnection.StartAsync();
-                }
-                await hubConnection.InvokeAsync("OnStart", gridOptions);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message + " (Start())");
-            }
+            startCommand.Execute((hubConnection, gridOptions));
         }
         StateHasChanged();
     }

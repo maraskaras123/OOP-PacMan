@@ -1,4 +1,6 @@
-﻿namespace PacMan.Shared.Models
+﻿using System.Drawing;
+
+namespace PacMan.Shared.Models
 {
     public class TileGrid
     {
@@ -23,6 +25,15 @@
         public Tile GetTile(int x, int y)
         {
             if (Tiles.TryGetValue($"{x}_{y}", out Tile tile))
+            {
+                return tile;
+            }
+            return new Tile();
+        }
+
+        public Tile GetTile(Point point)
+        {
+            if (Tiles.TryGetValue($"{point.X}_{point.Y}", out Tile tile))
             {
                 return tile;
             }
