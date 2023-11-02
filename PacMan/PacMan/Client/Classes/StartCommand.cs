@@ -5,24 +5,29 @@ using PacMan.Shared.Models;
 namespace PacMan.Client.Classes
 {
     // i like the way this sucks
-    public class StartCommand : IGameCommand<(HubConnection, TileGridBuilderOptions)>
+    public class StartCommand : IGameCommand<HubConnection?, TileGridBuilderOptions?>
     {
-        public async void Execute((HubConnection, TileGridBuilderOptions) options)
+        public async Task<bool> Execute(HubConnection? connection, TileGridBuilderOptions? options)
         {
-            if (options.Item1 is not null)
+            if (connection is null || options is null)
             {
-                try
+                return false;
+            }
+
+            try
+            {
+                if (connection.State == HubConnectionState.Disconnected)
                 {
-                    if (options.Item1.State == HubConnectionState.Disconnected)
-                    {
-                        await options.Item1.StartAsync();
-                    }
-                    await options.Item1.InvokeAsync("OnStart", options.Item2);
+                    await connection.StartAsync();
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message);
-                }
+
+                await connection.InvokeAsync("OnStart", options);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return false;
             }
         }
     }

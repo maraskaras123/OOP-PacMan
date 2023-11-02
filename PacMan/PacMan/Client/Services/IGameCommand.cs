@@ -1,7 +1,12 @@
 ﻿namespace PacMan.Client.Services
 {
-    public interface IGameCommand<T>
+    public interface IGameCommand<in T>
     {
-        void Execute(T parameter);
+        Task<bool> Execute(T parameter);
+    }
+
+    public interface IGameCommand<in T1, in T2>
+    {
+        Task<bool> Execute(T1 p1, T2 p2);
     }
 }
