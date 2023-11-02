@@ -1,4 +1,3 @@
-using System.Drawing;
 using PacMan.Shared.Enums;
 using PacMan.Shared.Models;
 

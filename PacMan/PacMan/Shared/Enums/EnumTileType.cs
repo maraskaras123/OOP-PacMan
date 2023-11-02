@@ -5,7 +5,6 @@
         Empty,
         Pellet,
         MegaPellet,
-        Wall,
-        
+        Wall
     }
 }

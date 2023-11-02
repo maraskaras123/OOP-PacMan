@@ -17,7 +17,7 @@ namespace PacMan.Server.Hubs
 
     public class GameHub : Hub<IGameHubClient>
     {
-        private IGameService _gameService;
+        private readonly IGameService _gameService;
 
         public GameHub(IGameService gameService)
         {
@@ -31,7 +31,7 @@ namespace PacMan.Server.Hubs
             storage.ConnectionIds.Add(Context.ConnectionId);
             await base.OnConnectedAsync();
         }
-        
+
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
             var storage = Storage.GetInstance();
@@ -41,6 +41,7 @@ namespace PacMan.Server.Hubs
             {
                 _gameService.Finish();
             }
+
             await base.OnDisconnectedAsync(exception);
         }
 
@@ -58,17 +59,17 @@ namespace PacMan.Server.Hubs
         [HubMethodName("OnChangeDirection")]
         public async Task ChangeDirectionAsync(EnumDirection direction)
         {
-            if (!Enum.IsDefined<EnumDirection>(direction))
+            if (!Enum.IsDefined(direction))
             {
-                throw new ArgumentException();
+                throw new ArgumentException("Direction invalid");
             }
 
             var storage = Storage.GetInstance();
-            storage.State[Context.ConnectionId] = new() 
-            { 
+            storage.State[Context.ConnectionId] = new()
+            {
                 Direction = direction,
-                Coordinates = storage.State[Context.ConnectionId].Coordinates, 
-                Points = storage.State[Context.ConnectionId].Points 
+                Coordinates = storage.State[Context.ConnectionId].Coordinates,
+                Points = storage.State[Context.ConnectionId].Points
             };
         }
 
@@ -76,14 +77,16 @@ namespace PacMan.Server.Hubs
         {
             await Clients.Caller.ReceiveGrid(Storage.GetInstance().Grid);
         }
-        
+
         public async Task SendEnemies()
         {
-            var enemyData = Storage.GetInstance().Enemies.Select(e => new EnemyModel
-            {
-                Position = e.Position,
-                Character = e.Character
-            }).ToList();
+            var enemyData = Storage.GetInstance().Enemies
+                .Select(e => new EnemyModel
+                {
+                    Position = e.Position,
+                    Character = e.Character
+                })
+                .ToList();
 
             await Clients.Caller.ReceiveEnemies(enemyData);
         }

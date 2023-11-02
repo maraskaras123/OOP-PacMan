@@ -6,13 +6,13 @@ namespace PacMan.Shared.Models
     {
         public int Width { get; set; }
         public int Height { get; set; }
-        public Dictionary<string, Tile> Tiles { get; set; } = new();
+        public Dictionary<string, Tile> Tiles { get; set; }
 
         public TileGrid()
         {
             Width = 30;
             Height = 30;
-            Tiles = new Dictionary<string, Tile>();
+            Tiles = new();
         }
 
         public TileGrid(int width, int height, Dictionary<string, Tile> tiles)
@@ -24,20 +24,12 @@ namespace PacMan.Shared.Models
 
         public Tile GetTile(int x, int y)
         {
-            if (Tiles.TryGetValue($"{x}_{y}", out Tile tile))
-            {
-                return tile;
-            }
-            return new Tile();
+            return Tiles.TryGetValue($"{x}_{y}", out var tile) ? tile : new();
         }
 
         public Tile GetTile(Point point)
         {
-            if (Tiles.TryGetValue($"{point.X}_{point.Y}", out Tile tile))
-            {
-                return tile;
-            }
-            return new Tile();
+            return GetTile(point.X, point.Y);
         }
     }
 }

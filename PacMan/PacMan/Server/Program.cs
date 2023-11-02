@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.ResponseCompression;
 using PacMan.Server.Hubs;
 using PacMan.Server.Services;
 
-namespace PacMan
+namespace PacMan.Server
 {
     public class Program
     {
@@ -48,11 +48,7 @@ namespace PacMan
             app.MapHub<ChatHub>("/chathub");
             app.MapHub<GameHub>("/gamehub");
 
-
-
             app.MapFallbackToFile("index.html");
-
-            
 
             app.Run();
         }

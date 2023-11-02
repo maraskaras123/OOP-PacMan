@@ -8,17 +8,17 @@ namespace PacMan.Shared.Models
 
         public Tile()
         {
-            this.Type = EnumTileType.Empty;
+            Type = EnumTileType.Empty;
         }
 
         public Tile(EnumTileType type)
         {
-            this.Type = type;
+            Type = type;
         }
 
         public void SetToEmpty()
         {
-            this.Type = EnumTileType.Empty;
+            Type = EnumTileType.Empty;
         }
     }
 }

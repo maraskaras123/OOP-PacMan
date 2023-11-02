@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
 
 namespace PacMan.Shared.Models
 {
@@ -10,32 +7,31 @@ namespace PacMan.Shared.Models
         public Point Position { get; set; }
         public char Character => 'B';
 
-        private readonly int ticsPerMove = 2;
+        private const int TicksPerMove = 2;
 
-        private int moveticks = 1;
+        private int _moveTicks = 1;
 
         public void Move(Dictionary<string, GameStateModel> playerStates)
         {
-            moveticks--;
-            if (moveticks == 0)
+            _moveTicks--;
+            if (_moveTicks == 0)
             {
                 var nearestPlayer = FindNearestPlayer(playerStates);
                 var path = AStar(Position, nearestPlayer.Coordinates);
 
-                if (path != null && path.Count > 1)
+                if (path is { Count: > 1 })
                 {
                     Position = path[1]; // Move to the next step in the path
                 }
-                moveticks = ticsPerMove;
+
+                _moveTicks = TicksPerMove;
             }
-
-
         }
 
         private GameStateModel FindNearestPlayer(Dictionary<string, GameStateModel> playerStates)
         {
-            double minDistance = double.MaxValue;
-            GameStateModel nearestPlayer = null;
+            var minDistance = double.MaxValue;
+            GameStateModel? nearestPlayer = null;
 
             foreach (var playerState in playerStates.Values)
             {
@@ -49,7 +45,7 @@ namespace PacMan.Shared.Models
                 }
             }
 
-            return nearestPlayer;
+            return nearestPlayer ?? throw new NullReferenceException();
         }
 
         private List<Point> AStar(Point start, Point end)
@@ -58,7 +54,7 @@ namespace PacMan.Shared.Models
             var openList = new List<Node>();
             var closedList = new List<Node>();
 
-            openList.Add(new Node { Position = start });
+            openList.Add(new() { Position = start });
 
             while (openList.Any())
             {
@@ -72,6 +68,7 @@ namespace PacMan.Shared.Models
                         path.Add(currentNode.Position);
                         currentNode = currentNode.Parent;
                     }
+
                     path.Reverse();
                     return path.ToList();
                 }
@@ -84,17 +81,23 @@ namespace PacMan.Shared.Models
                     // I'm assuming Storage.Walls is accessible from this scope
                     // Sorry i changed it up, maybe i should revert back to points
                     if (storage.Grid.GetTile(neighborPos.X, neighborPos.Y).Type == Enums.EnumTileType.Wall)
+                    {
                         continue;
+                    }
 
                     var neighbor = new Node { Position = neighborPos, Parent = currentNode };
                     neighbor.G = currentNode.G + 1;
                     neighbor.H = Math.Abs(neighbor.Position.X - end.X) + Math.Abs(neighbor.Position.Y - end.Y);
 
                     if (closedList.Any(node => node.Position == neighborPos) && currentNode.G + 1 >= neighbor.G)
+                    {
                         continue;
+                    }
 
                     if (!openList.Any(node => node.Position == neighborPos) || currentNode.G + 1 < neighbor.G)
+                    {
                         openList.Add(neighbor);
+                    }
                 }
             }
 
@@ -103,10 +106,10 @@ namespace PacMan.Shared.Models
 
         private IEnumerable<Point> GetNeighbors(Point current)
         {
-            yield return new Point(current.X - 1, current.Y);
-            yield return new Point(current.X + 1, current.Y);
-            yield return new Point(current.X, current.Y - 1);
-            yield return new Point(current.X, current.Y + 1);
+            yield return new(current.X - 1, current.Y);
+            yield return new(current.X + 1, current.Y);
+            yield return new(current.X, current.Y - 1);
+            yield return new(current.X, current.Y + 1);
         }
 
         private class Node

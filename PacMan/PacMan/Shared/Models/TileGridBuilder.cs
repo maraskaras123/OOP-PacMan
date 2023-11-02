@@ -4,66 +4,64 @@ namespace PacMan.Shared.Models
 {
     public class TileGridBuilder
     {
-        private int Width = 30;
-        private int Height = 30;
+        private int _width = 30;
+        private int _height = 30;
         private Dictionary<string, Tile> Tiles { get; set; } = new();
 
         public TileGridBuilder WithWidth(int width)
         {
-            this.Width = width;
+            _width = width;
             return this;
         }
 
         public TileGridBuilder WithHeight(int height)
         {
-            this.Height = height;
+            _height = height;
             return this;
         }
 
         public TileGridBuilder WithRandomTiles(int tiles = 50)
         {
-            this.Tiles = new Dictionary<string, Tile>();
+            Tiles = new();
             var rnd = new Random();
             // intuitively it makes no sense to me why i is width and j is height but here we are
-            for (int i = 0; i < Width; i++) 
+            for (var i = 0; i < _width; i++)
             {
-                for (int j = 0; j < Height; j++)
+                for (var j = 0; j < _height; j++)
                 {
-                    this.Tiles.Add($"{i}_{j}", new Tile(EnumTileType.Pellet));
+                    Tiles.Add($"{i}_{j}", new(EnumTileType.Pellet));
                 }
             }
+
             for (var i = 0; i < tiles; i++)
             {
-                int r1 = rnd.Next(0, this.Height);
-                int r2 = rnd.Next(0, this.Width);
+                var r1 = rnd.Next(0, _height);
+                var r2 = rnd.Next(0, _width);
                 var tile = GetTile(r1, r2);
                 if (tile != null)
                 {
                     tile.Type = EnumTileType.Wall;
                 }
             }
+
             return this;
         }
 
         public TileGridBuilder WithClassicPacmanTiles()
         {
-            this.Tiles = new Dictionary<string, Tile>();
+            Tiles = new();
             // some algorhithm
             return this;
         }
 
-        private Tile GetTile(int x, int y)
+        private Tile? GetTile(int x, int y)
         {
-            if (Tiles.TryGetValue($"{x}_{y}", out Tile tile))
-            {
-                return tile;
-            }
-            return new Tile();
+            return Tiles.TryGetValue($"{x}_{y}", out var tile) ? tile : null;
         }
 
         public TileGrid Build()
         {
-            return new TileGrid(Width, Height, Tiles);
+            return new(_width, _height, Tiles);
         }
     }
 }

@@ -1,6 +1,4 @@
-﻿using PacMan.Shared.Models;
-
-namespace PacMan.Client.Services
+﻿namespace PacMan.Client.Services
 {
     public interface IGameCommand<T>
     {
