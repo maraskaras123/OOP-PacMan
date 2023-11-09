@@ -1,7 +1,9 @@
 @page "/gametest"
 @using Microsoft.AspNetCore.SignalR.Client
 @inject NavigationManager Navigation
+@inject StartCommand StartCommand
 @implements IAsyncDisposable
+@using PacMan.Client.Classes;
 @using PacMan.Shared.Models;
 @using PacMan.Shared.Enums;
 @using System.Drawing;
@@ -22,14 +24,14 @@
     }
 </style>
 
-@if (gameState == EnumGameState.Initializing)
+@if (_gameState == EnumGameState.Initializing)
 {
     <label>width</label>
-    <input @bind="gridOptions.Width" />
+    <input @bind="_gridOptions.Width"/>
     <label>height</label>
-    <input @bind="gridOptions.Height" />
+    <input @bind="_gridOptions.Height"/>
     <label>random tiles</label>
-    <input @bind="gridOptions.RandomTileCount" />
+    <input @bind="_gridOptions.RandomTileCount" />
     <h5>Choose your input method:</h5>
     <input type="radio" id="keyboard" name="inputMethod" value="Keyboard"
         @onchange="() => ChangeInputMethod(EnumInputMethod.Keyboard)" checked="@IsKeyboardSelected" />
@@ -46,15 +48,16 @@
 }
 
 
-@if (gameState == EnumGameState.Starting)
+
+@if (_gameState == EnumGameState.Starting)
 {
     <p>Game is starting...</p>
 }
 
-@if (gameState == EnumGameState.Running)
+@if (_gameState == EnumGameState.Running)
 {
     <p>Game:</p>
-    <p>Tick number: @ticknumber</p>
+    <p>Tick number: @_tickNumber</p>
     @if (selectedInputMethod == EnumInputMethod.Keyboard)
     {
         <script>
@@ -63,25 +66,25 @@
             });
         </script>
     }
-    @for (var i = 0; i < points.Count; i++)
+    @for (var i = 0; i < _points.Count; i++)
     {
-        <p>Player @(i + 1): @points[i] points</p>
+        <p>Player @(i+1): @_points[i] points</p>
     }
 
     <table>
-        @for (var i = 0; i < grid.Height; i++)
+        @for (var i = 0; i < _grid.Height; i++)
         {
             <tr>
-                @for (var j = 0; j < grid.Width; j++)
+                @for (var j = 0; j < _grid.Width; j++)
                 {
-                    EnemyModel enemyAtPosition = enemies.FirstOrDefault(e => e.Position == new Point(j, i));
+                    EnemyModel enemyAtPosition = _enemies.FirstOrDefault(e => e.Position == new Point(j, i));
 
                     <td class="grid-cell">
-                        @if (grid.GetTile(j, i) == EnumTileType.Wall)
+                        @if (_grid.GetTile(j, i) == EnumTileType.Wall)
                         {
                             <p style="margin: 0; padding: 0;">█</p>
                         }
-                        @if (grid.GetTile(j, i) == EnumTileType.Pellet && enemyAtPosition == null)
+                        @if (_grid.GetTile(j, i) == EnumTileType.Pellet && enemyAtPosition == null)
                         {
                             <p style="margin: 0; padding: 0;">●</p>
                         }
@@ -98,7 +101,7 @@
                             }
                         }
 
-                        @foreach (var coordinate in playerCoordinates)
+                        @foreach (var coordinate in _playerCoordinates)
                         {
                             var coordinateSplit = coordinate.Split(',');
                             if (int.Parse(coordinateSplit[1]) == j && int.Parse(coordinateSplit[2]) == i)
@@ -115,14 +118,14 @@
     @if (selectedInputMethod == EnumInputMethod.Buttons)
     {
         <br />
-        <button @onclick="async () => input.ChangeDirection(EnumDirection.Up.ToString())">↑</button>
+        <button @onclick="async () => _input.ChangeDirection(EnumDirection.Up.ToString())">↑</button>
 
         <br />
-        <button @onclick="async () => input.ChangeDirection(EnumDirection.Left.ToString())">←</button>
-        <button @onclick="async () => input.ChangeDirection(EnumDirection.Right.ToString())">→</button>
+        <button @onclick="async () => _input.ChangeDirection(EnumDirection.Left.ToString())">←</button>
+        <button @onclick="async () => _input.ChangeDirection(EnumDirection.Right.ToString())">→</button>
 
         <br />
-        <button @onclick="async () => input.ChangeDirection(EnumDirection.Down.ToString())">↓</button>
+        <button @onclick="async () => _input.ChangeDirection(EnumDirection.Down.ToString())">↓</button>
         <br />
     }
 }
@@ -132,38 +135,38 @@
 
     private bool IsKeyboardSelected => selectedInputMethod == EnumInputMethod.Keyboard;
     private bool IsButtonsSelected => selectedInputMethod == EnumInputMethod.Buttons;
-    private GridModel grid = new GridModel();
-    private TileGridBuilderOptions gridOptions = new TileGridBuilderOptions();
-    private List<EnemyModel> enemies = new();
-    private HubConnection? hubConnection;
-    private List<string> connectedIds = new();
-    private int ticknumber = 0;
-    private List<int> points = new List<int>();
-    EnumDirection playerDirection = EnumDirection.Right;
-    private EnumGameState gameState = EnumGameState.Initializing;
-    private List<string> playerCoordinates = new();
-    private StateModel stateModel = new(EnumGameState.Initializing, new(), new());
-    InputService input;
+    private GridModel _grid = new GridModel();
+    private readonly TileGridBuilderOptions _gridOptions = new();
+private List<EnemyModel> _enemies = new();
+    private HubConnection? _hubConnection;
+    private List<string> _connectedIds = new();
+    private int _tickNumber = 0;
+    private List<int> _points = new();
+    EnumDirection _playerDirection = EnumDirection.Right;
+    private EnumGameState _gameState = EnumGameState.Initializing;
+    private List<string> _playerCoordinates = new();
+    private StateModel _stateModel = new(EnumGameState.Initializing, new(), new());
+    InputService _input;
 
     protected override async Task OnInitializedAsync()
     {
-        hubConnection = new HubConnectionBuilder()
+        _hubConnection = new HubConnectionBuilder()
         .WithUrl(Navigation.ToAbsoluteUri("/gamehub"))
         .Build();
-        hubConnection.On<GridModel>("ReceiveGrid", OnReceiveGrid);
-        hubConnection.On<List<EnemyModel>>("ReceiveEnemies", OnReceiveEnemies);
-        hubConnection.On<StateModel>("Tick", OnTickAsync);
+        _hubConnection.On<GridModel>("ReceiveGrid", OnReceiveGrid);
+        _hubConnection.On<List<EnemyModel>>("ReceiveEnemies", OnReceiveEnemies);
+        _hubConnection.On<StateModel>("Tick", OnTickAsync);
 
-        hubConnection.On<EnumGameState>("Starting", state =>
+        _hubConnection.On<EnumGameState>("Starting", state =>
         {
             Console.WriteLine(state);
-            gameState = state;
+            _gameState = state;
             StateHasChanged();
         });
 
         try
         {
-            await hubConnection.StartAsync();
+            await _hubConnection.StartAsync();
         }
         catch (Exception ex)
         {
@@ -180,60 +183,64 @@
 
     private void SetInputMethod()
     {
-        input = new InputService(selectedInputMethod, hubConnection);
+        _input = new InputService(selectedInputMethod, _hubConnection);
     }
 
     private async Task Start()
     {
-        if (hubConnection is not null)
+        if (_hubConnection is not null && _gridOptions is not null)
         {
             try
             {
-                if (hubConnection.State == HubConnectionState.Disconnected)
+                if (_hubConnection.State == HubConnectionState.Disconnected)
                 {
-                    await hubConnection.StartAsync();
+                    await _hubConnection.StartAsync();
                 }
-                await hubConnection.InvokeAsync("OnStart", gridOptions);
+                await _hubConnection.InvokeAsync("OnStart", _gridOptions);
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message + " (Start())");
             }
             SetInputMethod();
+            await StartCommand.Execute(_hubConnection, _gridOptions);
         }
         StateHasChanged();
     }
 
     private async Task OnReceiveGrid(GridModel receivedGrid)
     {
-        grid = receivedGrid;
+        _grid = receivedGrid;
         StateHasChanged();
     }
+
 
     private async Task OnReceiveEnemies(List<EnemyModel> receivedEnemies)
     {
-        enemies = receivedEnemies;
+        _enemies = receivedEnemies;
         StateHasChanged();
-
     }
+
     public bool IsConnected =>
-    hubConnection?.State == HubConnectionState.Connected;
+      _hubConnection?.State == HubConnectionState.Connected;
+
     public async ValueTask DisposeAsync()
     {
-        if (hubConnection is not null)
+        if (_hubConnection is not null)
         {
-            await hubConnection.DisposeAsync();
+            await _hubConnection.DisposeAsync();
         }
     }
     private async Task OnTickAsync(StateModel model)
     {
-        var a = grid.Tiles;
-        stateModel = model;
-        gameState = model.GameState;
-        playerCoordinates = model.Coordinates;
-        points = model.Points;
+        _stateModel = model;
+        _gameState = model.GameState;
+
+        _playerCoordinates = model.Coordinates;
+        _points = model.Points;
         Console.WriteLine(model.Coordinates.First());
-        ticknumber++;
+        _tickNumber++;
         StateHasChanged();
     }
+
 }

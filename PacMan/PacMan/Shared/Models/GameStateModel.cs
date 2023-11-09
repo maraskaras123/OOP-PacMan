@@ -12,7 +12,7 @@ namespace PacMan.Shared.Models
         public GameStateModel()
         {
             Direction = EnumDirection.Right;
-            Coordinates = new (0, 0);
+            Coordinates = new(0, 0);
         }
 
         public GameStateModel(Point point)

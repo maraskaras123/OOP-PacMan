@@ -1,5 +1,4 @@
-﻿using System.Drawing;
-using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.SignalR;
 using PacMan.Server.Services;
 using PacMan.Shared;
 using PacMan.Shared.Enums;
@@ -19,7 +18,7 @@ namespace PacMan.Server.Hubs
 
     public class GameHub : Hub<IGameHubClient>
     {
-        private IGameService _gameService;
+        private readonly IGameService _gameService;
 
         public GameHub(IGameService gameService)
         {
@@ -28,19 +27,23 @@ namespace PacMan.Server.Hubs
 
         public override async Task OnConnectedAsync()
         {
-            await Clients.Caller.RegisteredUserId(Storage.ConnectionIds.Count);
-            Storage.ConnectionIds.Add(Context.ConnectionId);
+            var storage = Storage.GetInstance();
+            await Clients.Caller.RegisteredUserId(storage.ConnectionIds.Count);
+            storage.ConnectionIds.Add(Context.ConnectionId);
             await base.OnConnectedAsync();
         }
 
+
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
-            Storage.ConnectionIds.RemoveAt(Storage.ConnectionIds.FindIndex(s => s == Context.ConnectionId));
-            Storage.State.Remove(Context.ConnectionId);
-            if (!Storage.ConnectionIds.Any())
+            var storage = Storage.GetInstance();
+            storage.ConnectionIds.RemoveAt(storage.ConnectionIds.FindIndex(s => s == Context.ConnectionId));
+            storage.State.Remove(Context.ConnectionId);
+            if (!storage.ConnectionIds.Any())
             {
                 _gameService.Finish();
             }
+
             await base.OnDisconnectedAsync(exception);
         }
 
@@ -58,16 +61,17 @@ namespace PacMan.Server.Hubs
         [HubMethodName("OnChangeDirection")]
         public async Task ChangeDirectionAsync(EnumDirection direction)
         {
-            if (!Enum.IsDefined<EnumDirection>(direction))
+            if (!Enum.IsDefined(direction))
             {
-                throw new ArgumentException();
+                throw new ArgumentException("Direction invalid");
             }
 
-            Storage.State[Context.ConnectionId] = new()
+            var storage = Storage.GetInstance();
+            storage.State[Context.ConnectionId] = new()
             {
                 Direction = direction,
-                Coordinates = Storage.State[Context.ConnectionId].Coordinates,
-                Points = Storage.State[Context.ConnectionId].Points
+                Coordinates = storage.State[Context.ConnectionId].Coordinates,
+                Points = storage.State[Context.ConnectionId].Points
             };
         }
 
@@ -77,13 +81,16 @@ namespace PacMan.Server.Hubs
             await Clients.Caller.ReceiveGrid(gridModel);
         }
 
+
         public async Task SendEnemies()
         {
-            var enemyData = Storage.Enemies.Select(e => new EnemyModel
-            {
-                Position = e.Position,
-                Character = e.Character
-            }).ToList();
+            var enemyData = Storage.GetInstance().Enemies
+                .Select(e => new EnemyModel
+                {
+                    Position = e.Position,
+                    Character = e.Character
+                })
+                .ToList();
 
             await Clients.Caller.ReceiveEnemies(enemyData);
         }

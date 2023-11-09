@@ -7,6 +7,5 @@ namespace PacMan.Shared.Models
         Point Position { get; set; }
         char Character { get; }
         void Move(Dictionary<string, GameStateModel> playerStates);
-        
     }
 }

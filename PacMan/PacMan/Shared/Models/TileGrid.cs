@@ -1,4 +1,6 @@
-﻿using PacMan.Shared.Enums;
+using PacMan.Shared.Enums;
+
+using System.Drawing;
 
 namespace PacMan.Shared.Models
 {
@@ -6,13 +8,13 @@ namespace PacMan.Shared.Models
     {
         public int Width { get; set; }
         public int Height { get; set; }
-        public Dictionary<string, Tile> Tiles { get; set; } = new();
+        public Dictionary<string, Tile> Tiles { get; set; }
 
         public TileGrid()
         {
             Width = 30;
             Height = 30;
-            Tiles = new Dictionary<string, Tile>();
+            Tiles = new();
         }
 
         public TileGrid(int width, int height, Dictionary<string, Tile> tiles)

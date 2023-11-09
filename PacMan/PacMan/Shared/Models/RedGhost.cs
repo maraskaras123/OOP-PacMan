@@ -1,7 +1,5 @@
-using System;
-using System.Collections.Generic;
+using PacMan.Shared.Enums;
 using System.Drawing;
-using System.Linq;
 
 namespace PacMan.Shared.Models
 {
@@ -9,42 +7,46 @@ namespace PacMan.Shared.Models
     {
         public char Character => 'R';
         public Point Position { get; set; }
-        private int ticksSinceLastDirectionChange = 0;
-        private Point currentDirection = Directions[0]; // Default to right
+        private int _ticksSinceLastDirectionChange;
+        private Point _currentDirection = Directions[0]; // Default to right
 
-        private static readonly List<Point> Directions = new List<Point>
+        private static readonly List<Point> Directions = new()
         {
-            new Point(1, 0),  // Right
-            new Point(-1, 0), // Left
-            new Point(0, 1),  // Down
-            new Point(0, -1)  // Up
+            new(1, 0), // Right
+            new(-1, 0), // Left
+            new(0, 1), // Down
+            new(0, -1) // Up
         };
 
         public void Move(Dictionary<string, GameStateModel> playerStates)
         {
-            ticksSinceLastDirectionChange++;
+            _ticksSinceLastDirectionChange++;
+            var storage = Storage.GetInstance();
 
-            if (ticksSinceLastDirectionChange >= 4)
+            if (_ticksSinceLastDirectionChange >= 4)
             {
-                currentDirection = ChooseRandomDirection();
-                ticksSinceLastDirectionChange = 0;
+                _currentDirection = ChooseRandomDirection();
+                _ticksSinceLastDirectionChange = 0;
             }
 
-            var nextPosition = new Point(Position.X + currentDirection.X, Position.Y + currentDirection.Y);
+            var nextPosition = new Point(Position.X + _currentDirection.X, Position.Y + _currentDirection.Y);
 
             // Assuming Storage.Walls is accessible from this scope
             // Sorry i changed it up, maybe i should revert back to points
-            if (Storage.Grid.GetTile(nextPosition.X, nextPosition.Y).Type != Enums.EnumTileType.Wall&&(CanMoveTo(nextPosition)))
+            if (storage.Grid.GetTile(nextPosition.X, nextPosition.Y).Type != EnumTileType.Wall &&
+                CanMoveTo(nextPosition))
             {
                 Position = nextPosition;
             }
             else
             {
-                currentDirection = ChooseRandomDirection();
+                _currentDirection = ChooseRandomDirection();
             }
         }
+
         private bool CanMoveTo(Point nextPosition)
         {
+            var storage = Storage.GetInstance();
             // Check out-of-bounds conditions
             if (nextPosition.X < 0 || nextPosition.X > 30 || nextPosition.Y < 0 || nextPosition.Y > 30)
             {
@@ -52,7 +54,7 @@ namespace PacMan.Shared.Models
             }
 
             // Check if the next position is a wall
-            if (Storage.Grid.GetTile(nextPosition.X, nextPosition.Y).Type == Enums.EnumTileType.Wall)
+            if (storage.Grid.GetTile(nextPosition.X, nextPosition.Y).Type == EnumTileType.Wall)
             {
                 return false;
             }
