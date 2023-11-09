@@ -53,9 +53,6 @@ namespace PacMan.Server
             app.MapHub<GameHub>("/gamehub");
 
             app.MapFallbackToFile("index.html");
-
-
-
             app.Run();
         }
     }
