@@ -1,4 +1,6 @@
-﻿namespace PacMan.Shared.Models
+﻿using PacMan.Shared.Enums;
+
+namespace PacMan.Shared.Models
 {
     public class TileGrid
     {
@@ -26,7 +28,26 @@
             {
                 return tile;
             }
-            return new Tile();
+            return new EmptyTile();
+        }
+        public void ChangeTile(Tile tile, int x, int y)
+        {
+            string key = $"{x}_{y}";
+            if(Tiles.ContainsKey(key))
+            {
+                Tiles[key] = tile;
+            }
+        }
+        public GridModel ConvertForSending()
+        {
+            GridModel grid = new GridModel();
+            grid.Width = Width;
+            grid.Height = Height;
+            foreach(var tile in Tiles)
+            {
+                grid.Tiles.Add(tile.Key, tile.Value.Type);
+            }
+            return grid;
         }
     }
 }

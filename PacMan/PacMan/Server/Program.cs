@@ -16,6 +16,10 @@ namespace PacMan
             builder.Services.AddRazorPages();
             builder.Services.AddSingleton<IGameService, GameService>();
             builder.Services.AddSignalR();
+            builder.Services.AddSignalR().AddJsonProtocol(options =>
+            {
+                options.PayloadSerializerOptions.Converters.Add(new TileJsonConverter());
+            });
             builder.Services.AddResponseCompression(opts =>
             {
                 opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[] { "application/octet-stream" });
@@ -52,7 +56,7 @@ namespace PacMan
 
             app.MapFallbackToFile("index.html");
 
-            
+
 
             app.Run();
         }

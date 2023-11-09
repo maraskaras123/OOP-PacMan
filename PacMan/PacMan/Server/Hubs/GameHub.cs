@@ -1,9 +1,10 @@
-using System.Drawing;
+﻿using System.Drawing;
 using Microsoft.AspNetCore.SignalR;
 using PacMan.Server.Services;
 using PacMan.Shared;
 using PacMan.Shared.Enums;
 using PacMan.Shared.Models;
+using System.Text.Json;
 
 namespace PacMan.Server.Hubs
 {
@@ -12,7 +13,7 @@ namespace PacMan.Server.Hubs
         Task RegisteredUserId(int userId);
         Task Starting(EnumGameState gameState);
         Task Tick(StateModel state);
-        Task ReceiveGrid(TileGrid grid);
+        Task ReceiveGrid(GridModel grid);
         Task ReceiveEnemies(List<EnemyModel> enemies);
     }
 
@@ -31,7 +32,7 @@ namespace PacMan.Server.Hubs
             Storage.ConnectionIds.Add(Context.ConnectionId);
             await base.OnConnectedAsync();
         }
-        
+
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
             Storage.ConnectionIds.RemoveAt(Storage.ConnectionIds.FindIndex(s => s == Context.ConnectionId));
@@ -62,19 +63,20 @@ namespace PacMan.Server.Hubs
                 throw new ArgumentException();
             }
 
-            Storage.State[Context.ConnectionId] = new() 
-            { 
+            Storage.State[Context.ConnectionId] = new()
+            {
                 Direction = direction,
-                Coordinates = Storage.State[Context.ConnectionId].Coordinates, 
-                Points = Storage.State[Context.ConnectionId].Points 
+                Coordinates = Storage.State[Context.ConnectionId].Coordinates,
+                Points = Storage.State[Context.ConnectionId].Points
             };
         }
 
         public async Task SendGrid()
         {
-            await Clients.Caller.ReceiveGrid(Storage.Grid);
+            var gridModel = Storage.Grid.ConvertForSending();
+            await Clients.Caller.ReceiveGrid(gridModel);
         }
-        
+
         public async Task SendEnemies()
         {
             var enemyData = Storage.Enemies.Select(e => new EnemyModel
