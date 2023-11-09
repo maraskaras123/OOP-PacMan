@@ -77,7 +77,7 @@ namespace PacMan.Server.Hubs
 
         public async Task SendGrid()
         {
-            var gridModel = Storage.Grid.ConvertForSending();
+            var gridModel = Storage.GetInstance().Grid.ConvertForSending();
             await Clients.Caller.ReceiveGrid(gridModel);
         }
 

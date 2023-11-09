@@ -3,7 +3,6 @@ using PacMan.Server.Hubs;
 using PacMan.Shared;
 using PacMan.Shared.Enums;
 using PacMan.Shared.Factories;
-using PacMan.Shared.Factories.PacMan.Shared.Factories;
 using PacMan.Shared.Models;
 
 namespace PacMan.Server.Services
@@ -101,6 +100,7 @@ namespace PacMan.Server.Services
         // Game Logic
         private async Task Tick()
         {
+            var storage = Storage.GetInstance();
             await _hubContext.Clients.All.ReceiveGrid(storage.Grid.ConvertForSending());
             foreach (var enemy in storage.Enemies)
             {
@@ -138,7 +138,7 @@ namespace PacMan.Server.Services
                             state.Value.Coordinates = new(currentX + 1, currentY);
                             if (desiredTile.Type == EnumTileType.Pellet)
                             {
-                                desiredTile = emptyTileFactory.CreateTile() as EmptyTile;
+                                desiredTile = _emptyTileFactory.CreateTile() as EmptyTile;
                                 storage.Grid.ChangeTile(desiredTile, currentX + 1, currentY);
                                 state.Value.Points += 1;
                             }
