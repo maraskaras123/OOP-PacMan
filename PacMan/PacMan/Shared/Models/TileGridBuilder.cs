@@ -1,4 +1,5 @@
 ﻿using PacMan.Shared.Enums;
+using PacMan.Shared.Factories;
 
 namespace PacMan.Shared.Models
 {
@@ -7,6 +8,8 @@ namespace PacMan.Shared.Models
         private int _width = 30;
         private int _height = 30;
         private Dictionary<string, Tile> Tiles { get; set; } = new();
+        private TileFactory pelletsFactory;
+        private TileFactory wallsFactory;
 
         public TileGridBuilder WithWidth(int width)
         {
@@ -22,25 +25,31 @@ namespace PacMan.Shared.Models
 
         public TileGridBuilder WithRandomTiles(int tiles = 50)
         {
-            Tiles = new();
+            pelletsFactory = new PelletTileFactory();
+            wallsFactory = new WallTileFactory();
+            this.Tiles = new Dictionary<string, Tile>();
             var rnd = new Random();
+            for (var i = 0; i < tiles; i++)
+            {
+                int r1 = rnd.Next(0, this.Height);
+                int r2 = rnd.Next(0, this.Width);
+                Tile tile = GetTile(r1, r2);
+                if ((tile != null)&&(tile.Type!=EnumTileType.Wall))
+                {
+                    tile = wallsFactory.CreateTile();
+                    this.Tiles.Add($"{r1}_{r2}", tile);
+                }
+            }
             // intuitively it makes no sense to me why i is width and j is height but here we are
             for (var i = 0; i < _width; i++)
             {
                 for (var j = 0; j < _height; j++)
                 {
-                    Tiles.Add($"{i}_{j}", new(EnumTileType.Pellet));
-                }
-            }
-
-            for (var i = 0; i < tiles; i++)
-            {
-                var r1 = rnd.Next(0, _height);
-                var r2 = rnd.Next(0, _width);
-                var tile = GetTile(r1, r2);
-                if (tile != null)
-                {
-                    tile.Type = EnumTileType.Wall;
+                    var tile = GetTile(i, j);
+                    if (tile.Type != EnumTileType.Wall)
+                    {
+                        this.Tiles.Add($"{i}_{j}", pelletsFactory.CreateTile()); 
+                    }
                 }
             }
 
@@ -56,7 +65,11 @@ namespace PacMan.Shared.Models
 
         private Tile? GetTile(int x, int y)
         {
-            return Tiles.TryGetValue($"{x}_{y}", out var tile) ? tile : null;
+            if (Tiles.TryGetValue($"{x}_{y}", out Tile tile))
+            {
+                return tile;
+            }
+            return new EmptyTile();
         }
 
         public TileGrid Build()
