@@ -51,5 +51,18 @@ namespace PacMan.Shared.Models
             }
             return grid;
         }
+
+        public TileGrid ShallowCopy()
+        {
+            return (TileGrid)this.MemberwiseClone();
+        }
+
+        public TileGrid DeepCopy()
+        {
+            TileGrid clone = this.ShallowCopy();
+            clone.Tiles = new Dictionary<string, Tile>(this.Tiles);
+
+            return clone;
+        }
     }
 }

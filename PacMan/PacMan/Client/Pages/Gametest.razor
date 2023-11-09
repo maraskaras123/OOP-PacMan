@@ -1,7 +1,6 @@
 @page "/gametest"
 @using Microsoft.AspNetCore.SignalR.Client
 @inject NavigationManager Navigation
-@inject StartCommand StartCommand
 @implements IAsyncDisposable
 @using PacMan.Client.Classes;
 @using PacMan.Shared.Models;
@@ -23,6 +22,7 @@
         /* Adjust cell height as needed */
     }
 </style>
+
 
 @if (_gameState == EnumGameState.Initializing)
 {
@@ -115,6 +115,7 @@
         }
     </table>
 
+    @_input
     @if (selectedInputMethod == EnumInputMethod.Buttons)
     {
         <br />
@@ -137,7 +138,7 @@
     private bool IsButtonsSelected => selectedInputMethod == EnumInputMethod.Buttons;
     private GridModel _grid = new GridModel();
     private readonly TileGridBuilderOptions _gridOptions = new();
-private List<EnemyModel> _enemies = new();
+    private List<EnemyModel> _enemies = new();
     private HubConnection? _hubConnection;
     private List<string> _connectedIds = new();
     private int _tickNumber = 0;
@@ -190,20 +191,10 @@ private List<EnemyModel> _enemies = new();
     {
         if (_hubConnection is not null && _gridOptions is not null)
         {
-            try
-            {
-                if (_hubConnection.State == HubConnectionState.Disconnected)
-                {
-                    await _hubConnection.StartAsync();
-                }
-                await _hubConnection.InvokeAsync("OnStart", _gridOptions);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message + " (Start())");
-            }
+            Invoker invoker = new Invoker();
+            invoker.SetCommand(new StartCommand(_hubConnection, _gridOptions));
+            invoker.InvokeCommand();
             SetInputMethod();
-            await StartCommand.Execute(_hubConnection, _gridOptions);
         }
         StateHasChanged();
     }

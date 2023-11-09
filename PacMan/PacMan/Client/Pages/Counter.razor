@@ -1,12 +1,89 @@
 ﻿@page "/counter"
-
-<PageTitle>Game test</PageTitle>
+@using PacMan.Shared.Models
+@using PacMan.Shared.Enums
+<PageTitle>Prototype test</PageTitle>
 
 <h1>Testing</h1>
+<h3>Original grid</h3>
+<button @onclick="ChangeOriginalTiles">Generate new grid</button>
+@if (tilegridOriginal != null)
+{
+    <table>
+        @for (var i = 0; i < tilegridOriginal.Height; i++)
+        {
+            <tr>
+                @for (var j = 0; j < tilegridOriginal.Width; j++)
+                {
 
-<p role="status">Current count: @currentCount</p>
+                    <td class="grid-cell">
+                        @if (tilegridOriginal.GetTile(j, i).Type == EnumTileType.Wall)
+                        {
+                            <p style="margin: 0; padding: 0;">█</p>
+                        }
+                        @if (tilegridOriginal.GetTile(j, i).Type == EnumTileType.Pellet)
+                        {
+                            <p style="margin: 0; padding: 0;">●</p>
+                        }
+                    </td>
+                }
+            </tr>
+        }
+    </table>
+}
 
-<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+<h3>Shallow grid</h3>
+@if (tilegridShallow != null)
+{
+    <table>
+        @for (var i = 0; i < tilegridShallow.Height; i++)
+        {
+            <tr>
+                @for (var j = 0; j < tilegridShallow.Width; j++)
+                {
+
+                    <td class="grid-cell">
+                        @if (tilegridShallow.GetTile(j, i).Type == EnumTileType.Wall)
+                        {
+                            <p style="margin: 0; padding: 0;">█</p>
+                        }
+                        @if (tilegridShallow.GetTile(j, i).Type == EnumTileType.Pellet)
+                        {
+                            <p style="margin: 0; padding: 0;">●</p>
+                        }
+                    </td>
+                }
+            </tr>
+        }
+    </table>
+}
+
+<h3>Deep grid</h3>
+@if (tilegridDeep != null)
+{
+    <table>
+        @for (var i = 0; i < tilegridDeep.Height; i++)
+        {
+            <tr>
+                @for (var j = 0; j < tilegridDeep.Width; j++)
+                {
+
+                    <td class="grid-cell">
+                        @if (tilegridDeep.GetTile(j, i).Type == EnumTileType.Wall)
+                        {
+                            <p style="margin: 0; padding: 0;">█</p>
+                        }
+                        @if (tilegridDeep.GetTile(j, i).Type == EnumTileType.Pellet)
+                        {
+                            <p style="margin: 0; padding: 0;">●</p>
+                        }
+                    </td>
+                }
+            </tr>
+        }
+    </table>
+}
+
+
 
 @code {
     private int currentCount = 0;
@@ -15,4 +92,40 @@
     {
         currentCount++;
     }
+
+    TileGrid tilegridOriginal = new TileGridBuilder()
+                                        .WithWidth(3)
+                                        .WithHeight(3)
+                                        .WithRandomTiles(1)
+                                        .Build();
+
+    TileGrid tilegridShallow = new TileGrid();
+    TileGrid tilegridDeep = new TileGrid();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await MakeShallowCopy();
+        await MakeDeepCopy();
+    }
+
+
+
+    private async Task MakeShallowCopy()
+    {
+        tilegridShallow = tilegridOriginal.ShallowCopy();
+        StateHasChanged();
+    }
+
+    private async Task MakeDeepCopy()
+    {
+        tilegridDeep = tilegridOriginal.DeepCopy();
+        StateHasChanged();
+    }
+
+    private async Task ChangeOriginalTiles()
+    {
+        tilegridOriginal.Tiles["1_1"].Type = EnumTileType.Empty;
+        StateHasChanged();
+    }
+
 }
