@@ -58,6 +58,13 @@ namespace PacMan.Server.Hubs
             Task.Run(_gameService.Init);
         }
 
+        [HubMethodName("OnRestart")]
+        public async Task OnRestartAsync()
+        {
+            _gameService.Reset(false);
+            await Clients.All.Starting(EnumGameState.Initializing);
+        }
+
         [HubMethodName("OnChangeDirection")]
         public async Task ChangeDirectionAsync(EnumDirection direction)
         {

@@ -54,6 +54,12 @@
     <p>Game is starting...</p>
 }
 
+@if (_gameState == EnumGameState.Finished)
+{
+    <p>Finished!!</p>
+    <button @onclick="async () => await Restart()">Restart</button>
+}
+
 @if (_gameState == EnumGameState.Running)
 {
     <p>Game:</p>
@@ -179,7 +185,6 @@
     private void ChangeInputMethod(EnumInputMethod method)
     {
         selectedInputMethod = method;
-
     }
 
     private void SetInputMethod()
@@ -203,6 +208,19 @@
     {
         _grid = receivedGrid;
         StateHasChanged();
+    }
+
+    private async Task Restart()
+    {
+        if (_hubConnection is not null)
+        {
+            if (_hubConnection.State == HubConnectionState.Disconnected)
+            {
+                await _hubConnection.StartAsync();
+            }
+
+            await _hubConnection.InvokeAsync("OnRestart");
+        }
     }
 
 

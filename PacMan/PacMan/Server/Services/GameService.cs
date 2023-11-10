@@ -178,6 +178,11 @@ namespace PacMan.Server.Services
 
                         break;
                 }
+
+                if (state.Value.Points >= 100)
+                {
+                    Finish();
+                }
             }
 
             var enemyData = storage.Enemies.Select(e => new EnemyModel

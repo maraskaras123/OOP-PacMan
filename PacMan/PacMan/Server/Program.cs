@@ -10,19 +10,37 @@ namespace PacMan.Server
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            var jsonPath = "appsettings.json";
+            if (builder.Environment.EnvironmentName == "Production")
+            {
+                jsonPath = "/config/appsettings-pacmanapi.json";
+            }
+
+            Console.WriteLine(jsonPath);
+            builder.Configuration.AddJsonFile(jsonPath, false, true);
+
             // Add services to the container.
 
-            builder.Services.AddControllersWithViews();
-            builder.Services.AddRazorPages();
+            //builder.Services.AddControllersWithViews();
+            //builder.Services.AddRazorPages();
+            builder.Services.AddControllers();
             builder.Services.AddSingleton<IGameService, GameService>();
-            builder.Services.AddSignalR();
-            builder.Services.AddSignalR().AddJsonProtocol(options =>
+            builder.Services.AddSignalR(o => { o.EnableDetailedErrors = true;});
+            builder.Services.AddSignalR(o => { o.EnableDetailedErrors = true; }).AddJsonProtocol(options =>
             {
                 options.PayloadSerializerOptions.Converters.Add(new TileJsonConverter());
             });
             builder.Services.AddResponseCompression(opts =>
             {
                 opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[] { "application/octet-stream" });
+            });
+
+            builder.Services.AddCors(c =>
+            {
+                c.AddPolicy("AllowOrigin",
+                    options => options.AllowAnyOrigin() /*.WithOrigins(builder.Configuration["AllowedHosts"])*/
+                        .AllowAnyMethod()
+                        .AllowAnyHeader());
             });
 
             var app = builder.Build();
@@ -40,6 +58,8 @@ namespace PacMan.Server
                 app.UseHsts();
             }
 
+            app.UseCors("AllowOrigin");
+
             app.UseHttpsRedirection();
 
             app.UseBlazorFrameworkFiles();
@@ -47,7 +67,7 @@ namespace PacMan.Server
 
             app.UseRouting();
 
-            app.MapRazorPages();
+            //app.MapRazorPages();
             app.MapControllers();
             app.MapHub<ChatHub>("/chathub");
             app.MapHub<GameHub>("/gamehub");
