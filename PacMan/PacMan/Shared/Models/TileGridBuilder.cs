@@ -1,67 +1,79 @@
 ﻿using PacMan.Shared.Enums;
+using PacMan.Shared.Factories;
 
 namespace PacMan.Shared.Models
 {
     public class TileGridBuilder
     {
-        private int _width = 30;
-        private int _height = 30;
+        private int Width = 30;
+        private int Height = 30;
         private Dictionary<string, Tile> Tiles { get; set; } = new();
+        private TileFactory pelletsFactory;
+        private TileFactory wallsFactory;
 
         public TileGridBuilder WithWidth(int width)
         {
-            _width = width;
+            this.Width = width;
             return this;
         }
 
         public TileGridBuilder WithHeight(int height)
         {
-            _height = height;
+            this.Height = height;
             return this;
         }
 
         public TileGridBuilder WithRandomTiles(int tiles = 50)
         {
-            Tiles = new();
+            pelletsFactory = new PelletTileFactory();
+            wallsFactory = new WallTileFactory();
+            this.Tiles = new Dictionary<string, Tile>();
             var rnd = new Random();
-            // intuitively it makes no sense to me why i is width and j is height but here we are
-            for (var i = 0; i < _width; i++)
-            {
-                for (var j = 0; j < _height; j++)
-                {
-                    Tiles.Add($"{i}_{j}", new(EnumTileType.Pellet));
-                }
-            }
-
             for (var i = 0; i < tiles; i++)
             {
-                var r1 = rnd.Next(0, _height);
-                var r2 = rnd.Next(0, _width);
-                var tile = GetTile(r1, r2);
-                if (tile != null)
+                int r1 = rnd.Next(0, this.Height);
+                int r2 = rnd.Next(0, this.Width);
+                Tile tile = GetTile(r1, r2);
+                if ((tile != null)&&(tile.Type!=EnumTileType.Wall))
                 {
-                    tile.Type = EnumTileType.Wall;
+                    tile = wallsFactory.CreateTile();
+                    this.Tiles.Add($"{r1}_{r2}", tile);
                 }
             }
-
+            // intuitively it makes no sense to me why i is width and j is height but here we are
+            for (int i = 0; i < Width; i++) 
+            {
+                for (int j = 0; j < Height; j++)
+                {
+                    var tile = GetTile(i, j);
+                    if (tile.Type != EnumTileType.Wall)
+                    {
+                        this.Tiles.Add($"{i}_{j}", pelletsFactory.CreateTile()); 
+                    }
+                }
+            }
             return this;
         }
 
         public TileGridBuilder WithClassicPacmanTiles()
         {
-            Tiles = new();
+            this.Tiles = new Dictionary<string, Tile>();
             // some algorhithm
             return this;
         }
 
-        private Tile? GetTile(int x, int y)
+        private Tile GetTile(int x, int y)
         {
-            return Tiles.TryGetValue($"{x}_{y}", out var tile) ? tile : null;
+            if (Tiles.TryGetValue($"{x}_{y}", out Tile tile))
+            {
+                return tile;
+            }
+            return new EmptyTile();
         }
 
         public TileGrid Build()
         {
-            return new(_width, _height, Tiles);
+            return new TileGrid(Width, Height, Tiles);
         }
     }
 }

@@ -1,8 +1,9 @@
-using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.SignalR;
 using PacMan.Server.Services;
 using PacMan.Shared;
 using PacMan.Shared.Enums;
 using PacMan.Shared.Models;
+using System.Text.Json;
 
 namespace PacMan.Server.Hubs
 {
@@ -11,7 +12,7 @@ namespace PacMan.Server.Hubs
         Task RegisteredUserId(int userId);
         Task Starting(EnumGameState gameState);
         Task Tick(StateModel state);
-        Task ReceiveGrid(TileGrid grid);
+        Task ReceiveGrid(GridModel grid);
         Task ReceiveEnemies(List<EnemyModel> enemies);
     }
 
@@ -31,6 +32,7 @@ namespace PacMan.Server.Hubs
             storage.ConnectionIds.Add(Context.ConnectionId);
             await base.OnConnectedAsync();
         }
+
 
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
@@ -75,8 +77,10 @@ namespace PacMan.Server.Hubs
 
         public async Task SendGrid()
         {
-            await Clients.Caller.ReceiveGrid(Storage.GetInstance().Grid);
+            var gridModel = Storage.GetInstance().Grid.ConvertForSending();
+            await Clients.Caller.ReceiveGrid(gridModel);
         }
+
 
         public async Task SendEnemies()
         {

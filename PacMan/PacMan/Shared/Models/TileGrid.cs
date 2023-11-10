@@ -1,4 +1,6 @@
-﻿using System.Drawing;
+using PacMan.Shared.Enums;
+
+using System.Drawing;
 
 namespace PacMan.Shared.Models
 {
@@ -24,12 +26,43 @@ namespace PacMan.Shared.Models
 
         public Tile GetTile(int x, int y)
         {
-            return Tiles.TryGetValue($"{x}_{y}", out var tile) ? tile : new();
+            if (Tiles.TryGetValue($"{x}_{y}", out Tile tile))
+            {
+                return tile;
+            }
+            return new EmptyTile();
+        }
+        public void ChangeTile(Tile tile, int x, int y)
+        {
+            string key = $"{x}_{y}";
+            if(Tiles.ContainsKey(key))
+            {
+                Tiles[key] = tile;
+            }
+        }
+        public GridModel ConvertForSending()
+        {
+            GridModel grid = new GridModel();
+            grid.Width = Width;
+            grid.Height = Height;
+            foreach(var tile in Tiles)
+            {
+                grid.Tiles.Add(tile.Key, tile.Value.Type);
+            }
+            return grid;
         }
 
-        public Tile GetTile(Point point)
+        public TileGrid ShallowCopy()
         {
-            return GetTile(point.X, point.Y);
+            return (TileGrid)this.MemberwiseClone();
+        }
+
+        public TileGrid DeepCopy()
+        {
+            TileGrid clone = this.ShallowCopy();
+            clone.Tiles = new Dictionary<string, Tile>(this.Tiles);
+
+            return clone;
         }
     }
 }

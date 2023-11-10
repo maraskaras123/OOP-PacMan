@@ -4,10 +4,18 @@ using PacMan.Shared.Models;
 
 namespace PacMan.Client.Classes
 {
-    // i like the way this sucks
-    public class StartCommand : IGameCommand<HubConnection?, TileGridBuilderOptions?>
+    public class StartCommand : IGameCommand
     {
-        public async Task<bool> Execute(HubConnection? connection, TileGridBuilderOptions? options)
+        private HubConnection _connection;
+        private TileGridBuilderOptions _options;
+
+        public StartCommand(HubConnection connection, TileGridBuilderOptions options)
+        {
+            _connection = connection;
+            _options = options;
+        }
+
+        public async Task<bool> StartGame(HubConnection connection, TileGridBuilderOptions options)
         {
             if (connection is null || options is null)
             {
@@ -29,6 +37,11 @@ namespace PacMan.Client.Classes
                 Console.WriteLine(ex.Message);
                 return false;
             }
+        }
+
+        public void Execute()
+        {
+            StartGame(_connection, _options);
         }
     }
 }
