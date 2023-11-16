@@ -14,12 +14,39 @@
 <style>
     /* Define a CSS class to style the table cells */
     .grid-cell {
-        border: 1px solid #000;
+        /* border: 1px solid #000; */
         /* Add border styles as needed */
-        width: 20px;
+        width: 30px;
         /* Adjust cell width as needed */
-        height: 20px;
+        height: 30px;
         /* Adjust cell height as needed */
+    }
+
+    .wall {
+        background-color: cornflowerblue;
+    }
+
+    .pellet {
+        border-radius: 50%;
+        background-color: white;
+        height: 10px;
+        width: 10px;
+        display: flex;
+        align-items: center;
+    }
+
+    .game-grid {
+        border: 1px solid #000;
+        background-color: #000;
+    }
+
+    .scoreboard {
+        border: 2px solid #000;
+        width: 500px;
+        display: flex;
+        flex-direction: column;
+        padding-top: 15px;
+        padding-left: 15px;
     }
 </style>
 
@@ -62,8 +89,6 @@
 
 @if (_gameState == EnumGameState.Running)
 {
-    <p>Game:</p>
-    <p>Tick number: @_tickNumber</p>
     @if (selectedInputMethod == EnumInputMethod.Keyboard)
     {
         <script>
@@ -72,50 +97,66 @@
             });
         </script>
     }
-    @for (var i = 0; i < _points.Count; i++)
-    {
-        <p>Player @(i+1): @_points[i] points</p>
-    }
+    <div class="scoreboard">
+        @foreach (PlayerScore playerScore in _points)
+        {
+            <p>@(new MarkupString(GetPacmanColorByPlayer(playerScore.PlayerId))) Player @(playerScore.PlayerId + 1): @playerScore.Points points</p>
+        }
+    </div>
+    <br />
 
-    <table>
+    <table class="game-grid">
         @for (var i = 0; i < _grid.Height; i++)
         {
             <tr>
                 @for (var j = 0; j < _grid.Width; j++)
                 {
-                    EnemyModel enemyAtPosition = _enemies.FirstOrDefault(e => e.Position == new Point(j, i));
+                    // get current positions enemy, player and tile
+                    EnemyModel enemyAtPosition = _enemies.FirstOrDefault(e => e.Position == new Point(j, i));                    
+                    string playerAtPosition = "";
+                    foreach (var coordinate in _playerCoordinates)
+                    {
+                        var coordinateSplit = coordinate.Split(',');
+                        if (int.Parse(coordinateSplit[1]) == j && int.Parse(coordinateSplit[2]) == i)
+                        {
+                            playerAtPosition = coordinateSplit[0];
+                        }
+                    }
+                    EnumTileType tileType = _grid.GetTile(j, i);
 
-                    <td class="grid-cell">
-                        @if (_grid.GetTile(j, i) == EnumTileType.Wall)
+                    // if player at current position - render player
+                    if (playerAtPosition != "")
+                    {
+                        <td class="grid-cell">
+                            <center>
+                            @(new MarkupString(GetPacmanColorByPlayer(int.Parse(playerAtPosition))))
+                            </center>
+                        </td>
+                    } else
+                    // no player at current position - render enemy
+                    if (enemyAtPosition != null)
+                    {
+                        <td class="grid-cell">
+                            <center>
+                                @(new MarkupString(GetGhostColorByChar(enemyAtPosition.Character)))
+                            </center>
+                        </td>
+                    } else
+                    // no player or enemy at current position - render tile
+                    {
+                        switch(tileType)
                         {
-                            <p style="margin: 0; padding: 0;">█</p>
+                            case EnumTileType.Wall:
+                                @(new MarkupString("<td class='grid-cell wall'></td>"))
+                                break;
+                            case EnumTileType.Pellet:
+                                @(new MarkupString("<td class='grid-cell'><center><div class='pellet'></center></div></td>"))
+                                break;
+                            default:
+                                @(new MarkupString("<td class='grid-cell'></td>"))
+                                break;
                         }
-                        @if (_grid.GetTile(j, i) == EnumTileType.Pellet && enemyAtPosition == null)
-                        {
-                            <p style="margin: 0; padding: 0;">●</p>
-                        }
-
-                        @if (enemyAtPosition != null)
-                        {
-                            @if (enemyAtPosition.Character == 'B')
-                            {
-                                <p style="color: dodgerblue">@enemyAtPosition.Character</p>
-                            }
-                            @if (enemyAtPosition.Character == 'R')
-                            {
-                                <p style="color: indianred">@enemyAtPosition.Character</p>
-                            }
-                        }
-
-                        @foreach (var coordinate in _playerCoordinates)
-                        {
-                            var coordinateSplit = coordinate.Split(',');
-                            if (int.Parse(coordinateSplit[1]) == j && int.Parse(coordinateSplit[2]) == i)
-                            {
-                                <p style="margin: 0">@(int.Parse(coordinateSplit[0]) + 1)</p>
-                            }
-                        }
-                    </td>
+                    }
                 }
             </tr>
         }
@@ -146,12 +187,11 @@
     private readonly TileGridBuilderOptions _gridOptions = new();
     private List<EnemyModel> _enemies = new();
     private HubConnection? _hubConnection;
-    private List<string> _connectedIds = new();
     private int _tickNumber = 0;
-    private List<int> _points = new();
+    private List<PlayerScore> _points = new();
+    private List<string> _playerCoordinates = new();
     EnumDirection _playerDirection = EnumDirection.Right;
     private EnumGameState _gameState = EnumGameState.Initializing;
-    private List<string> _playerCoordinates = new();
     private StateModel _stateModel = new(EnumGameState.Initializing, new(), new());
     InputService _input;
 
@@ -240,16 +280,88 @@
             await _hubConnection.DisposeAsync();
         }
     }
+
+    private class PlayerScore
+    {
+        public int PlayerId { get; set; }
+        public int Points { get; set; }
+
+        public PlayerScore(int playerId, int points)
+        {
+            this.PlayerId = playerId;
+            this.Points = points;
+        }
+    }
+
     private async Task OnTickAsync(StateModel model)
     {
         _stateModel = model;
         _gameState = model.GameState;
 
         _playerCoordinates = model.Coordinates;
-        _points = model.Points;
+        _points = new List<PlayerScore>();
+        for(int i = 0; i < model.Points.Count; i++)
+        {
+            _points.Add(new PlayerScore(i, model.Points[i]));    
+        }
+
+        _points = _points.OrderByDescending(ps => ps.Points).ToList();
         Console.WriteLine(model.Coordinates.First());
         _tickNumber++;
         StateHasChanged();
+    }
+
+    
+
+}
+
+@functions {
+    // these really should just be svg files not these dumb ass functions
+    public string GetPacmanSvgString(string color = "eb343a")
+    {
+        return $"<svg height='18px' width='18px' version='1.1' id='Capa_1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 52 52' xml:space='preserve'><g><path style='fill:#{color};' d='M44.385,44.385c-10.154,10.154-26.616,10.154-36.77,0s-10.154-26.616,0-36.77s26.616-10.154,36.77,0L26,26L44.385,44.385z'/></g></svg>";
+    }
+
+    public string GetGhostSvgString(string color = "2803ff")
+    {
+        return "<svg width=\"20px\" height=\"20px\" viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">" +
+            $"<path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M22 19.2058V12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12V19.2058C2 20.4896 3.35098 21.3245 4.4992 20.7504C5.42726 20.2864 6.5328 20.3552 7.39614 20.9308C8.36736 21.5782 9.63264 21.5782 10.6039 20.9308L10.9565 20.6957C11.5884 20.2744 12.4116 20.2744 13.0435 20.6957L13.3961 20.9308C14.3674 21.5782 15.6326 21.5782 16.6039 20.9308C17.4672 20.3552 18.5727 20.2864 19.5008 20.7504C20.649 21.3245 22 20.4896 22 19.2058ZM16 10.5C16 11.3284 15.5523 12 15 12C14.4477 12 14 11.3284 14 10.5C14 9.67157 14.4477 9 15 9C15.5523 9 16 9.67157 16 10.5ZM9 12C9.55228 12 10 11.3284 10 10.5C10 9.67157 9.55228 9 9 9C8.44772 9 8 9.67157 8 10.5C8 11.3284 8.44772 12 9 12Z\" fill=\"#{color}\" />" +
+            "</svg>";
+    }
+
+    public string GetPacmanColorByPlayer(int player)
+    {
+        switch (player)
+        {
+            case 0: 
+                return GetPacmanSvgString("F0C419");
+                break;
+            case 1:
+                return GetPacmanSvgString("34eb5e");
+                break;
+            case 2:
+                return GetPacmanSvgString("344feb");
+                break;
+            default:
+                return GetPacmanSvgString();
+                break;
+        }
+    }
+
+    public string GetGhostColorByChar(char character)
+    {
+        switch (character)
+        {
+            case 'B':
+                return GetGhostSvgString("2803ff");
+                break;
+            case 'R':
+                return GetGhostSvgString("ff0303");
+                break;
+            default:
+                return GetGhostSvgString();
+                break;
+        }
     }
 
 }
