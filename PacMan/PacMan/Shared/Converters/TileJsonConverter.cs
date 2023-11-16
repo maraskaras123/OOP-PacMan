@@ -1,16 +1,16 @@
-using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using PacMan.Shared.Enums;
 using PacMan.Shared.Models;
 
-public class TileJsonConverter : JsonConverter<Tile>
+namespace PacMan.Shared.Converters
 {
-    public override Tile Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public class TileJsonConverter : JsonConverter<Tile>
     {
-        using (JsonDocument document = JsonDocument.ParseValue(ref reader))
+        public override Tile Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            JsonElement root = document.RootElement;
+            using var document = JsonDocument.ParseValue(ref reader);
+            var root = document.RootElement;
 
             // Check the type property to determine which class to instantiate.
             if (!root.TryGetProperty("Type", out var typeElement))
@@ -19,52 +19,49 @@ public class TileJsonConverter : JsonConverter<Tile>
             }
 
             EnumTileType type;
-            if (typeElement.ValueKind == JsonValueKind.String)
+            switch (typeElement.ValueKind)
             {
-                // If the type is a string, parse it as an enum
-                var typeStr = typeElement.GetString();
-                if (!Enum.TryParse(typeStr, out type))
+                case JsonValueKind.String:
                 {
-                    throw new JsonException($"Unknown tile type: {typeStr}");
+                    // If the type is a string, parse it as an enum
+                    var typeStr = typeElement.GetString();
+                    if (!Enum.TryParse(typeStr, out type))
+                    {
+                        throw new JsonException($"Unknown tile type: {typeStr}");
+                    }
+
+                    break;
                 }
-            }
-            else if (typeElement.ValueKind == JsonValueKind.Number)
-            {
-                // If the type is a number, get it as an int and then cast to the enum
-                type = (EnumTileType)typeElement.GetInt32();
-            }
-            else
-            {
-                throw new JsonException("Invalid type value.");
-            }
-
-            Tile tile;
-            switch (type)
-            {
-                case EnumTileType.Wall:
-                    tile = new WallTile();
+                case JsonValueKind.Number:
+                    // If the type is a number, get it as an int and then cast to the enum
+                    type = (EnumTileType)typeElement.GetInt32();
                     break;
-                case EnumTileType.Pellet:
-                    tile = new PelletTile();
-                    break;
-                case EnumTileType.MegaPellet:
-                    tile = new MegaPelletTile();
-                    break;
-                case EnumTileType.Empty:
-                    tile = new EmptyTile();
-                    break;
+                case JsonValueKind.Undefined:
+                case JsonValueKind.Object:
+                case JsonValueKind.Array:
+                case JsonValueKind.True:
+                case JsonValueKind.False:
+                case JsonValueKind.Null:
                 default:
-                    throw new NotSupportedException($"Unknown tile type: {type}");
+                    throw new JsonException("Invalid type value.");
             }
 
+            Tile tile = type switch
+            {
+                EnumTileType.Wall => new WallTile(),
+                EnumTileType.Pellet => new PelletTile(),
+                EnumTileType.MegaPellet => new MegaPelletTile(),
+                EnumTileType.Empty => new EmptyTile(),
+                _ => throw new NotSupportedException($"Unknown tile type: {type}"),
+            };
             return tile;
         }
-    }
 
 
-    public override void Write(Utf8JsonWriter writer, Tile value, JsonSerializerOptions options)
-    {
-        // Serialize the Tile object based on its runtime type.
-        JsonSerializer.Serialize(writer, value, value.GetType(), options);
+        public override void Write(Utf8JsonWriter writer, Tile value, JsonSerializerOptions options)
+        {
+            // Serialize the Tile object based on its runtime type.
+            JsonSerializer.Serialize(writer, value, value.GetType(), options);
+        }
     }
 }

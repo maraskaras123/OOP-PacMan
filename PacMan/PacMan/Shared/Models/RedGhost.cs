@@ -18,10 +18,9 @@ namespace PacMan.Shared.Models
             new(0, -1) // Up
         };
 
-        public void Move(Dictionary<string, GameStateModel> playerStates)
+        public void Move(GameStateModel session)
         {
             _ticksSinceLastDirectionChange++;
-            var storage = Storage.GetInstance();
 
             if (_ticksSinceLastDirectionChange >= 4)
             {
@@ -33,8 +32,8 @@ namespace PacMan.Shared.Models
 
             // Assuming Storage.Walls is accessible from this scope
             // Sorry i changed it up, maybe i should revert back to points
-            if (storage.Grid.GetTile(nextPosition.X, nextPosition.Y).Type != EnumTileType.Wall &&
-                CanMoveTo(nextPosition))
+            if (session.Grid.GetTile(nextPosition.X, nextPosition.Y).Type != EnumTileType.Wall &&
+                CanMoveTo(session, nextPosition))
             {
                 Position = nextPosition;
             }
@@ -44,9 +43,8 @@ namespace PacMan.Shared.Models
             }
         }
 
-        private bool CanMoveTo(Point nextPosition)
+        private bool CanMoveTo(GameStateModel session, Point nextPosition)
         {
-            var storage = Storage.GetInstance();
             // Check out-of-bounds conditions
             if (nextPosition.X < 0 || nextPosition.X > 30 || nextPosition.Y < 0 || nextPosition.Y > 30)
             {
@@ -54,15 +52,10 @@ namespace PacMan.Shared.Models
             }
 
             // Check if the next position is a wall
-            if (storage.Grid.GetTile(nextPosition.X, nextPosition.Y).Type == EnumTileType.Wall)
-            {
-                return false;
-            }
-
-            return true;
+            return session.Grid.GetTile(nextPosition.X, nextPosition.Y).Type != EnumTileType.Wall;
         }
 
-        private Point ChooseRandomDirection()
+        private static Point ChooseRandomDirection()
         {
             var rand = new Random();
             return Directions[rand.Next(Directions.Count)];

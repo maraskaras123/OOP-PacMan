@@ -1,9 +1,12 @@
 using PacMan.Shared.Enums;
-using PacMan.Shared.Models;
-public class PelletTile : Tile
+
+namespace PacMan.Shared.Models
 {
-    public PelletTile()
+    public class PelletTile : Tile
     {
-        this.Type = EnumTileType.Pellet;
+        public PelletTile()
+        {
+            Type = EnumTileType.Pellet;
+        }
     }
 }

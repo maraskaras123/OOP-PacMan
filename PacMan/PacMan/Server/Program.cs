@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.ResponseCompression;
 using PacMan.Server.Hubs;
 using PacMan.Server.Services;
+using PacMan.Shared.Converters;
 
 namespace PacMan.Server
 {

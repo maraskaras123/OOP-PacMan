@@ -1,24 +1,15 @@
 ﻿using PacMan.Shared.Enums;
-using System.Drawing;
 
 namespace PacMan.Shared.Models
 {
     public class GameStateModel
     {
-        public EnumDirection Direction { get; set; }
-        public Point Coordinates { get; set; }
-        public int Points { get; set; }
+        public EnumGameState GameState { get; set; } = EnumGameState.Initializing;
+        public List<IEnemy> Enemies = new();
+        public TileGrid Grid { get; set; } = new();
+        public Dictionary<string, string> Connections { get; set; } = new();
+        public Dictionary<string, PlayerStateModel> State { get; set; } = new();
 
-        public GameStateModel()
-        {
-            Direction = EnumDirection.Right;
-            Coordinates = new(0, 0);
-        }
-
-        public GameStateModel(Point point)
-        {
-            Direction = EnumDirection.Right;
-            Coordinates = point;
-        }
+        public int Ticks { get; set; }
     }
 }

@@ -1,7 +1,3 @@
-using PacMan.Shared.Enums;
-
-using System.Drawing;
-
 namespace PacMan.Shared.Models
 {
     public class TileGrid
@@ -26,41 +22,42 @@ namespace PacMan.Shared.Models
 
         public Tile GetTile(int x, int y)
         {
-            if (Tiles.TryGetValue($"{x}_{y}", out Tile tile))
-            {
-                return tile;
-            }
-            return new EmptyTile();
+            return Tiles.TryGetValue($"{x}_{y}", out var tile) ? tile : new EmptyTile();
         }
+
         public void ChangeTile(Tile tile, int x, int y)
         {
-            string key = $"{x}_{y}";
-            if(Tiles.ContainsKey(key))
+            var key = $"{x}_{y}";
+            if (Tiles.ContainsKey(key))
             {
                 Tiles[key] = tile;
             }
         }
+
         public GridModel ConvertForSending()
         {
-            GridModel grid = new GridModel();
-            grid.Width = Width;
-            grid.Height = Height;
-            foreach(var tile in Tiles)
+            var grid = new GridModel
+            {
+                Width = Width,
+                Height = Height
+            };
+            foreach (var tile in Tiles)
             {
                 grid.Tiles.Add(tile.Key, tile.Value.Type);
             }
+
             return grid;
         }
 
         public TileGrid ShallowCopy()
         {
-            return (TileGrid)this.MemberwiseClone();
+            return (TileGrid)MemberwiseClone();
         }
 
         public TileGrid DeepCopy()
         {
-            TileGrid clone = this.ShallowCopy();
-            clone.Tiles = new Dictionary<string, Tile>(this.Tiles);
+            var clone = ShallowCopy();
+            clone.Tiles = new(Tiles);
 
             return clone;
         }

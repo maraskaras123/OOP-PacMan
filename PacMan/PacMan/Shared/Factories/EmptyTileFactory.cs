@@ -1,4 +1,3 @@
-
 using PacMan.Shared.Models;
 
 namespace PacMan.Shared.Factories

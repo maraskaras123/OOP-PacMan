@@ -3,14 +3,15 @@ using PacMan.Server.Services;
 using PacMan.Shared;
 using PacMan.Shared.Enums;
 using PacMan.Shared.Models;
-using System.Text.Json;
 
 namespace PacMan.Server.Hubs
 {
     public interface IGameHubClient
     {
+        Task JoinRejected();
+        Task Joined(List<PlayerStateBaseModel> sessions);
         Task RegisteredUserId(int userId);
-        Task Starting(EnumGameState gameState);
+        Task StateChange(EnumGameState gameState);
         Task Tick(StateModel state);
         Task ReceiveGrid(GridModel grid);
         Task ReceiveEnemies(List<EnemyModel> enemies);
@@ -27,42 +28,64 @@ namespace PacMan.Server.Hubs
 
         public override async Task OnConnectedAsync()
         {
-            var storage = Storage.GetInstance();
-            await Clients.Caller.RegisteredUserId(storage.ConnectionIds.Count);
-            storage.ConnectionIds.Add(Context.ConnectionId);
             await base.OnConnectedAsync();
         }
-
 
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
             var storage = Storage.GetInstance();
-            storage.ConnectionIds.RemoveAt(storage.ConnectionIds.FindIndex(s => s == Context.ConnectionId));
-            storage.State.Remove(Context.ConnectionId);
-            if (!storage.ConnectionIds.Any())
+            var session = storage.FindSession(Context.ConnectionId);
+            if (session is not null)
             {
-                _gameService.Finish();
+                session.Value.Value.Connections.Remove(Context.ConnectionId);
+                if (!session.Value.Value.Connections.Any())
+                {
+                    storage.RemoveSession(session.Value.Key);
+                }
             }
 
             await base.OnDisconnectedAsync(exception);
         }
 
+        [HubMethodName("JoinSession")]
+        public async Task JoinSessionAsync(string sessionId, string name)
+        {
+            var storage = Storage.GetInstance();
+            var session = storage.GetSession(sessionId);
+            if (session is null || session.GameState != EnumGameState.Initializing)
+            {
+                await Clients.Caller.JoinRejected();
+                return;
+            }
+
+            session.Connections.Add(Context.ConnectionId, name);
+            await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
+            await Clients.Group(sessionId)
+                .Joined(session.State.Select(x => new PlayerStateBaseModel { Name = x.Value.Name }).ToList());
+        }
+
         [HubMethodName("OnStart")]
         public async Task OnStartAsync(TileGridBuilderOptions gridOptions)
         {
-            _gameService.Start(gridOptions);
-            await Clients.All.Starting(EnumGameState.Starting);
-            await SendGrid();
-            await SendEnemies();
+            var storage = Storage.GetInstance();
+            var session = storage.FindSession(Context.ConnectionId) ?? throw new InvalidOperationException();
+            _gameService.Start(session.Value, gridOptions);
+            await Clients.Group(session.Key).StateChange(EnumGameState.Starting);
+            await Clients.Group(session.Key).ReceiveGrid(session.Value.Grid.ConvertForSending());
+            await Clients.Group(session.Key).ReceiveEnemies(session.Value.Enemies
+                .Select(e => new EnemyModel { Position = e.Position, Character = e.Character })
+                .ToList());
             await Task.Delay(200);
-            Task.Run(_gameService.Init);
+            Task.Run(() => _gameService.Init(session.Key, session.Value));
         }
 
         [HubMethodName("OnRestart")]
         public async Task OnRestartAsync()
         {
-            _gameService.Reset(false);
-            await Clients.All.Starting(EnumGameState.Initializing);
+            var session = Storage.GetInstance().FindSession(Context.ConnectionId) ??
+                          throw new InvalidOperationException();
+            _gameService.Reset(session.Value);
+            await Clients.Group(session.Key).StateChange(EnumGameState.Initializing);
         }
 
         [HubMethodName("OnChangeDirection")]
@@ -74,32 +97,11 @@ namespace PacMan.Server.Hubs
             }
 
             var storage = Storage.GetInstance();
-            storage.State[Context.ConnectionId] = new()
-            {
-                Direction = direction,
-                Coordinates = storage.State[Context.ConnectionId].Coordinates,
-                Points = storage.State[Context.ConnectionId].Points
-            };
-        }
+            var session = storage.FindSession(Context.ConnectionId) ??
+                          throw new InvalidOperationException("Client not connected");
 
-        public async Task SendGrid()
-        {
-            var gridModel = Storage.GetInstance().Grid.ConvertForSending();
-            await Clients.Caller.ReceiveGrid(gridModel);
-        }
-
-
-        public async Task SendEnemies()
-        {
-            var enemyData = Storage.GetInstance().Enemies
-                .Select(e => new EnemyModel
-                {
-                    Position = e.Position,
-                    Character = e.Character
-                })
-                .ToList();
-
-            await Clients.Caller.ReceiveEnemies(enemyData);
+            session.Value.State[Context.ConnectionId] =
+                session.Value.State[Context.ConnectionId].UpdateDirection(direction);
         }
     }
 }

@@ -1,9 +1,12 @@
 using PacMan.Shared.Enums;
-using PacMan.Shared.Models;
-public class WallTile : Tile
+
+namespace PacMan.Shared.Models
 {
-    public WallTile()
+    public class WallTile : Tile
     {
-        this.Type = EnumTileType.Wall;
+        public WallTile()
+        {
+            Type = EnumTileType.Wall;
+        }
     }
 }

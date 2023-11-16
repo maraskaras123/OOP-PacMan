@@ -1,12 +1,14 @@
-
-using PacMan.Shared.Enums;
 using PacMan.Shared.Models;
 
-public abstract class TileFactory
+namespace PacMan.Shared.Factories
 {
-    public abstract Tile CreateTile();
-    public virtual Tile ConvertToEmpty()
+    public abstract class TileFactory
     {
-        return new EmptyTile();
+        public abstract Tile CreateTile();
+
+        public virtual Tile ConvertToEmpty()
+        {
+            return new EmptyTile();
+        }
     }
 }

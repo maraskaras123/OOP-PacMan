@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using PacMan.Server.Hubs;
-using PacMan.Shared;
 using PacMan.Shared.Enums;
 using PacMan.Shared.Factories;
 using PacMan.Shared.Models;
@@ -9,10 +8,9 @@ namespace PacMan.Server.Services
 {
     public interface IGameService
     {
-        void Reset(bool? clearPlayers);
-        void Start(TileGridBuilderOptions gridOptions);
-        Task Init();
-        void Finish();
+        void Reset(GameStateModel session);
+        void Start(GameStateModel session, TileGridBuilderOptions gridOptions);
+        Task Init(string sessionId, GameStateModel session);
     }
 
     public class GameService : IGameService
@@ -30,139 +28,118 @@ namespace PacMan.Server.Services
             _hubContext = hubContext;
         }
 
-        public void Reset(bool? clearPlayers)
+        public void Reset(GameStateModel session)
         {
-            var storage = Storage.GetInstance();
-            storage.GameState = EnumGameState.Initializing;
-            if (clearPlayers ?? false)
-            {
-                storage.ConnectionIds = new();
-            }
+            session.GameState = EnumGameState.Initializing;
         }
 
-        public void Start(TileGridBuilderOptions gridOptions)
+        public void Start(GameStateModel session, TileGridBuilderOptions gridOptions)
         {
-            var storage = Storage.GetInstance();
-            CreateEnemies();
-            storage.GameState = EnumGameState.Starting;
+            CreateEnemies(session);
+            session.GameState = EnumGameState.Starting;
             var grid = new TileGridBuilder()
                 .WithWidth(gridOptions.Width)
                 .WithHeight(gridOptions.Height)
                 .WithRandomTiles(gridOptions.RandomTileCount)
                 .Build();
-            storage.Grid = grid;
+            session.Grid = grid;
         }
 
-
-        private void CreateEnemies()
+        private void CreateEnemies(GameStateModel session)
         {
-            var storage = Storage.GetInstance();
             var redGhost = _redGhostFactory.CreateEnemy();
             var blueGhost = _blueGhostFactory.CreateEnemy();
             redGhost.Position = new(10, 10);
             blueGhost.Position = new(9, 9);
-            storage.Enemies.Add(redGhost);
-            storage.Enemies.Add(blueGhost);
+            session.Enemies.Add(redGhost);
+            session.Enemies.Add(blueGhost);
         }
 
-        public async Task Init()
+        public async Task Init(string sessionId, GameStateModel session)
         {
-            var storage = Storage.GetInstance();
-            storage.GameState = EnumGameState.Running;
-            storage.Ticks = 0;
-            foreach (var connectionId in storage.ConnectionIds)
+            session.GameState = EnumGameState.Running;
+            session.Ticks = 0;
+            foreach (var connection in session.Connections)
             {
-                var stateModel = new GameStateModel();
-                storage.State.Add(connectionId, stateModel);
+                var stateModel = new PlayerStateModel() { Name = connection.Key };
+                session.State.Add(connection.Key, stateModel);
 
-
-                await _hubContext.Clients.All.ReceiveGrid(storage.Grid.ConvertForSending());
+                await _hubContext.Clients.Group(sessionId).ReceiveGrid(session.Grid.ConvertForSending());
             }
 
-            while (storage.GameState != EnumGameState.Finished)
+            while (session.GameState != EnumGameState.Finished)
             {
-                await Task.WhenAll(Task.Delay(500), Tick());
-                await _hubContext.Clients.All.ReceiveGrid(storage.Grid.ConvertForSending());
-                await _hubContext.Clients.All.Tick(new(storage.GameState,
-                    storage.State.Select((x, index) => $"{index},{x.Value.Coordinates.X},{x.Value.Coordinates.Y}")
+                await Task.WhenAll(Task.Delay(500), Tick(sessionId, session));
+                await _hubContext.Clients.Group(sessionId).ReceiveGrid(session.Grid.ConvertForSending());
+                await _hubContext.Clients.Group(sessionId).Tick(new(session.GameState,
+                    session.State.Select((x, index) => $"{index},{x.Value.Coordinates.X},{x.Value.Coordinates.Y}")
                         .ToList(),
-                    storage.State.Select(x => x.Value.Points).ToList()));
+                    session.State.Select(x => x.Value.Points).ToList()));
             }
-
-        }
-
-        public void Finish()
-        {
-            var storage = Storage.GetInstance();
-            storage.GameState = EnumGameState.Finished;
         }
 
         // Game Logic
-        private async Task Tick()
+        private async Task Tick(string sessionId, GameStateModel session)
         {
-            var storage = Storage.GetInstance();
-            await _hubContext.Clients.All.ReceiveGrid(storage.Grid.ConvertForSending());
-            foreach (var enemy in storage.Enemies)
+            await _hubContext.Clients.Group(sessionId).ReceiveGrid(session.Grid.ConvertForSending());
+            foreach (var enemy in session.Enemies)
             {
-                enemy.Move(storage.State);
+                enemy.Move(session.State);
             }
 
-            foreach (var state in storage.State)
+            foreach (var state in session.State)
             {
-                int currentX = state.Value.Coordinates.X;
-                int currentY = state.Value.Coordinates.Y;
-                Tile desiredTile = new EmptyTile();
+                var currentX = state.Value.Coordinates.X;
+                var currentY = state.Value.Coordinates.Y;
+                Tile desiredTile;
                 switch (state.Value.Direction)
                 {
                     case EnumDirection.Up:
-                        desiredTile = storage.Grid.GetTile(currentX, currentY - 1);
+                        desiredTile = session.Grid.GetTile(currentX, currentY - 1);
                         if (state.Value.Coordinates.Y > 0 &&
                             desiredTile.Type != EnumTileType.Wall)
                         {
                             state.Value.Coordinates = new(currentX, currentY - 1);
                             if (desiredTile.Type == EnumTileType.Pellet)
                             {
-                                desiredTile = _emptyTileFactory.CreateTile() as EmptyTile;
-                                storage.Grid.ChangeTile(desiredTile, currentX, currentY - 1);
+                                session.Grid.ChangeTile(_emptyTileFactory.ConvertToEmpty(), currentX, currentY - 1);
                                 state.Value.Points += 1;
                             }
                         }
 
                         break;
                     case EnumDirection.Right:
-                        desiredTile = storage.Grid.GetTile(currentX + 1, currentY);
-                        if (state.Value.Coordinates.X < storage.Grid.Width - 1 &&
+                        desiredTile = session.Grid.GetTile(currentX + 1, currentY);
+                        if (state.Value.Coordinates.X < session.Grid.Width - 1 &&
                             desiredTile.Type != EnumTileType.Wall)
                         {
                             //state.Value.Coordinates.Offset(1, 0);
                             state.Value.Coordinates = new(currentX + 1, currentY);
                             if (desiredTile.Type == EnumTileType.Pellet)
                             {
-                                desiredTile = _emptyTileFactory.CreateTile() as EmptyTile;
-                                storage.Grid.ChangeTile(desiredTile, currentX + 1, currentY);
+                                session.Grid.ChangeTile(_emptyTileFactory.ConvertToEmpty(), currentX + 1, currentY);
                                 state.Value.Points += 1;
                             }
                         }
 
                         break;
                     case EnumDirection.Down:
-                        desiredTile = storage.Grid.GetTile(currentX, currentY + 1);
-                        if (state.Value.Coordinates.Y < storage.Grid.Height - 1 &&
+                        desiredTile = session.Grid.GetTile(currentX, currentY + 1);
+                        if (state.Value.Coordinates.Y < session.Grid.Height - 1 &&
                             desiredTile.Type != EnumTileType.Wall)
                         {
                             //state.Value.Coordinates.Offset(0, 1);
                             state.Value.Coordinates = new(currentX, currentY + 1);
                             if (desiredTile.Type == EnumTileType.Pellet)
                             {
-                                desiredTile = _emptyTileFactory.CreateTile() as EmptyTile;
-                                storage.Grid.ChangeTile(desiredTile, currentX, currentY + 1);
+                                session.Grid.ChangeTile(_emptyTileFactory.ConvertToEmpty(), currentX, currentY + 1);
                                 state.Value.Points += 1;
                             }
                         }
 
                         break;
                     case EnumDirection.Left:
-                        desiredTile = storage.Grid.GetTile(currentX - 1, currentY);
+                        desiredTile = session.Grid.GetTile(currentX - 1, currentY);
                         if (state.Value.Coordinates.X > 0 &&
                             desiredTile.Type != EnumTileType.Wall)
                         {
@@ -170,8 +147,7 @@ namespace PacMan.Server.Services
                             state.Value.Coordinates = new(currentX - 1, currentY);
                             if (desiredTile.Type == EnumTileType.Pellet)
                             {
-                                desiredTile = _emptyTileFactory.CreateTile() as EmptyTile;
-                                storage.Grid.ChangeTile(desiredTile, currentX - 1, currentY);
+                                session.Grid.ChangeTile(_emptyTileFactory.ConvertToEmpty(), currentX - 1, currentY);
                                 state.Value.Points += 1;
                             }
                         }
@@ -181,17 +157,15 @@ namespace PacMan.Server.Services
 
                 if (state.Value.Points >= 100)
                 {
-                    Finish();
+                    session.GameState = EnumGameState.Finished;
                 }
             }
 
-            var enemyData = storage.Enemies.Select(e => new EnemyModel
-            {
-                Position = e.Position,
-                Character = e.Character
-            }).ToList();
-            await _hubContext.Clients.All.ReceiveEnemies(enemyData);
-            storage.Ticks += 1;
+            var enemyData = session.Enemies
+                .Select(e => new EnemyModel { Position = e.Position, Character = e.Character })
+                .ToList();
+            await _hubContext.Clients.Group(sessionId).ReceiveEnemies(enemyData);
+            session.Ticks += 1;
         }
     }
 }

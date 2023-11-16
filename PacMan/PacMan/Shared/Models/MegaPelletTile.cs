@@ -1,9 +1,12 @@
 using PacMan.Shared.Enums;
-using PacMan.Shared.Models;
-public class MegaPelletTile : Tile
+
+namespace PacMan.Shared.Models
 {
-        public MegaPelletTile()
+    public class MegaPelletTile : Tile
     {
-        this.Type = EnumTileType.MegaPellet;
+        public MegaPelletTile()
+        {
+            Type = EnumTileType.MegaPellet;
+        }
     }
 }

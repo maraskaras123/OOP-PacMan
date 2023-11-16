@@ -1,11 +1,12 @@
-
 using PacMan.Shared.Enums;
-using PacMan.Shared.Models;
 
-public class EmptyTile : Tile
+namespace PacMan.Shared.Models
 {
-    public EmptyTile()
+    public class EmptyTile : Tile
     {
-        this.Type = EnumTileType.Empty;
+        public EmptyTile()
+        {
+            Type = EnumTileType.Empty;
+        }
     }
 }
