@@ -224,8 +224,7 @@
     protected override async Task OnInitializedAsync()
     {
         _hubConnection = new HubConnectionBuilder()
-            .WithUrl(Navigation.ToAbsoluteUri("/gamehub"))
-            // .WithUrl($"{Program.ApiUrl}/gamehub")
+            .WithUrl($"{Program.ApiUrl}/gamehub")
             .Build();
         _hubConnection.On<List<PlayerStateBaseModel>>("Joined", OnJoined);
         _hubConnection.On<EnumGameState>("StateChange", OnStateChange);
