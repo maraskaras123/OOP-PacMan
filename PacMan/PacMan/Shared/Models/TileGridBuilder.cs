@@ -66,7 +66,7 @@ namespace PacMan.Shared.Models
 
         private Tile? GetTile(int x, int y)
         {
-            return Tiles[$"{x}_{y}"];
+            return Tiles.TryGetValue($"{x}_{y}", out var tile) ? tile : null;
         }
 
         public TileGrid Build()

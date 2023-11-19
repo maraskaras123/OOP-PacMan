@@ -1,6 +1,8 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.SignalR.Client
+@using PacMan.Shared.Models
 @inject NavigationManager Navigation
+@inject HttpClient HttpClient
 @implements IAsyncDisposable
 
 <PageTitle>Index</PageTitle>
@@ -8,18 +10,46 @@
 <div class="form-group">
     <label>
         User:
-        <input @bind="userInput" />
+        <input @bind="userInput"/>
     </label>
 </div>
 <div class="form-group">
     <label>
         Message:
-        <input @bind="messageInput" size="50" />
+        <input @bind="messageInput" size="50"/>
     </label>
 </div>
 <button @onclick="Send" disabled="@(!IsConnected)">Send</button>
 
 <hr>
+<table>
+    <thead>
+    <tr>
+        <th>Session Id</th>
+        <th>Session State</th>
+        <th>Player count</th>
+        <th></th>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var session in _sessions)
+    {
+        <tr>
+            <td>@session.Key</td>
+            <td>@session.GameState.ToString()</td>
+            <td>@session.Players.Count</td>
+            <td>
+                <button @onclick="() => Join(session.Key)">Join</button>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+
+<button @onclick="Create">Create</button>
+
+<hr/>
 
 <ul id="messagesList">
     @foreach (var message in messages)
@@ -30,10 +60,11 @@
 
 @code {
     private HubConnection? hubConnection;
-    private List<string> messages = new List<string>();
+    private List<string> messages = new();
     private string? userInput;
     private string? messageInput;
-
+    private string? lobbyCode;
+    private List<SessionStateBaseModel> _sessions = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -49,6 +80,8 @@
         });
 
         await hubConnection.StartAsync();
+
+        _sessions = await HttpClient.GetFromJsonAsync<List<SessionStateBaseModel>>("/sessions");
     }
 
     private async Task Send()
@@ -59,8 +92,18 @@
         }
     }
 
-    public bool IsConnected =>
-        hubConnection?.State == HubConnectionState.Connected;
+    private void Join(string key)
+    {
+        Navigation.NavigateTo($"/session/{key}");
+    }
+
+    private async Task Create()
+    {
+        var key = await (await HttpClient.PostAsync("/sessions", null)).Content.ReadAsStringAsync();
+        Navigation.NavigateTo($"/session/{key}");
+    }
+
+    public bool IsConnected => hubConnection?.State == HubConnectionState.Connected;
 
     public async ValueTask DisposeAsync()
     {
@@ -69,4 +112,5 @@
             await hubConnection.DisposeAsync();
         }
     }
+
 }

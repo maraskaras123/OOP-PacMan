@@ -42,6 +42,12 @@ namespace PacMan.Server.Hubs
                 {
                     storage.RemoveSession(session.Value.Key);
                 }
+                else
+                {
+                    await Clients.Group(session.Value.Key)
+                        .Joined(session.Value.Value.State.Select(x => new PlayerStateBaseModel { Name = x.Value.Name })
+                            .ToList());
+                }
             }
 
             await base.OnDisconnectedAsync(exception);
@@ -61,7 +67,8 @@ namespace PacMan.Server.Hubs
             session.Connections.Add(Context.ConnectionId, name);
             await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
             await Clients.Group(sessionId)
-                .Joined(session.State.Select(x => new PlayerStateBaseModel { Name = x.Value.Name }).ToList());
+                .Joined(session.Connections.Select(x => new PlayerStateBaseModel { Name = x.Value }).ToList());
+            await Clients.Caller.StateChange(session.GameState);
         }
 
         [HubMethodName("OnStart")]
@@ -86,6 +93,16 @@ namespace PacMan.Server.Hubs
                           throw new InvalidOperationException();
             _gameService.Reset(session.Value);
             await Clients.Group(session.Key).StateChange(EnumGameState.Initializing);
+        }
+
+        [HubMethodName("OnChangeName")]
+        public async Task OnChangeNameAsync(string playerName)
+        {
+            var session = Storage.GetInstance().FindSession(Context.ConnectionId) ??
+                          throw new InvalidOperationException();
+            session.Value.Connections[Context.ConnectionId] = playerName;
+            await Clients.Group(session.Key)
+                .Joined(session.Value.Connections.Select(x => new PlayerStateBaseModel { Name = x.Value }).ToList());
         }
 
         [HubMethodName("OnChangeDirection")]

@@ -3,6 +3,7 @@ using PacMan.Server.Hubs;
 using PacMan.Shared.Enums;
 using PacMan.Shared.Factories;
 using PacMan.Shared.Models;
+using System.Drawing;
 
 namespace PacMan.Server.Services
 {
@@ -59,9 +60,18 @@ namespace PacMan.Server.Services
         {
             session.GameState = EnumGameState.Running;
             session.Ticks = 0;
+            var rnd = new Random();
             foreach (var connection in session.Connections)
             {
-                var stateModel = new PlayerStateModel() { Name = connection.Key };
+                var stateModel = new PlayerStateModel()
+                    { Name = connection.Key, Direction = (EnumDirection)rnd.Next(0, 4) };
+                var coordinates = new Point(rnd.Next(session.Grid.Width), rnd.Next(session.Grid.Height));
+                while (session.Grid.Tiles[$"{coordinates.X}_{coordinates.Y}"].Type == EnumTileType.Wall)
+                {
+                    coordinates = new(rnd.Next(session.Grid.Width), rnd.Next(session.Grid.Height));
+                }
+
+                stateModel.Coordinates = coordinates;
                 session.State.Add(connection.Key, stateModel);
 
                 await _hubContext.Clients.Group(sessionId).ReceiveGrid(session.Grid.ConvertForSending());
@@ -84,7 +94,7 @@ namespace PacMan.Server.Services
             await _hubContext.Clients.Group(sessionId).ReceiveGrid(session.Grid.ConvertForSending());
             foreach (var enemy in session.Enemies)
             {
-                enemy.Move(session.State);
+                enemy.Move(session);
             }
 
             foreach (var state in session.State)

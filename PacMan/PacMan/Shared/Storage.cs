@@ -40,7 +40,7 @@ namespace PacMan.Shared
         {
             return _sessions
                 .Select(x => new SessionStateBaseModel(x.Key,
-                    x.Value.State.Select(s => new PlayerStateBaseModel { Name = s.Value.Name }).ToList(),
+                    x.Value.Connections.Select(s => new PlayerStateBaseModel { Name = s.Value }).ToList(),
                     x.Value.GameState))
                 .ToList();
         }

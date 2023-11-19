@@ -6,8 +6,8 @@ namespace PacMan.Client.Classes
 {
     public class StartCommand : IGameCommand
     {
-        private HubConnection _connection;
-        private TileGridBuilderOptions _options;
+        private readonly HubConnection _connection;
+        private readonly TileGridBuilderOptions _options;
 
         public StartCommand(HubConnection connection, TileGridBuilderOptions options)
         {

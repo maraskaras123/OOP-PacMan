@@ -1,13 +1,12 @@
-@page "/gametest"
+@page "/session/{SessionId}"
 @using Microsoft.AspNetCore.SignalR.Client
 @inject NavigationManager Navigation
 @implements IAsyncDisposable
 @using PacMan.Client.Classes;
 @using PacMan.Shared.Models;
 @using PacMan.Shared.Enums;
-@using System.Drawing;
-@using PacMan.Client.InputMethods;
 @using PacMan.Client.Services;
+@using System.Drawing
 
 <PageTitle>Game test</PageTitle>
 
@@ -53,28 +52,52 @@
 
 @if (_gameState == EnumGameState.Initializing)
 {
-    <label>width</label>
-    <input @bind="_gridOptions.Width"/>
-    <label>height</label>
-    <input @bind="_gridOptions.Height"/>
-    <label>random tiles</label>
-    <input @bind="_gridOptions.RandomTileCount" />
+    <h5>Choose your name:</h5>
+    <InputText @bind-Value="PlayerName"></InputText>
+    <button @onclick="ChangeName" disabled="@(!IsConnected)">Change</button>
+    <br/>
+    @if (_players.FirstOrDefault()?.Name == PlayerName)
+    {
+        <label>width</label>
+        <input @bind="_gridOptions.Width"/>
+        <label>height</label>
+        <input @bind="_gridOptions.Height"/>
+        <label>random tiles</label>
+        <input @bind="_gridOptions.RandomTileCount"/>
+    }
+
     <h5>Choose your input method:</h5>
     <input type="radio" id="keyboard" name="inputMethod" value="Keyboard"
-        @onchange="() => ChangeInputMethod(EnumInputMethod.Keyboard)" checked="@IsKeyboardSelected" />
+           @onchange="() => ChangeInputMethod(EnumInputMethod.Keyboard)" checked="@IsKeyboardSelected"/>
     <label for="keyboard">Keyboard</label>
-
-    <br />
-
+    <br/>
     <input type="radio" id="buttons" name="inputMethod" value="Buttons"
-        @onchange="() => ChangeInputMethod(EnumInputMethod.Buttons)" checked="@IsButtonsSelected" />
+           @onchange="() => ChangeInputMethod(EnumInputMethod.Buttons)" checked="@IsButtonsSelected"/>
     <label for="buttons">On-Screen Buttons</label>
 
-    <br />
-    <button @onclick="Start" disabled="@(!IsConnected)">Start</button>
+    <br/>
+    <table>
+        <thead>
+        <tr>
+            <th>Name</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var player in _players)
+        {
+            <tr>
+                <td>@player.Name</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+
+    @if (_players.FirstOrDefault()?.Name == PlayerName)
+    {
+        <br />
+        <button @onclick="Start" disabled="@(!IsConnected)">Start</button>
+    }
 }
-
-
 
 @if (_gameState == EnumGameState.Starting)
 {
@@ -89,7 +112,7 @@
 
 @if (_gameState == EnumGameState.Running)
 {
-    @if (selectedInputMethod == EnumInputMethod.Keyboard)
+    @if (_selectedInputMethod == EnumInputMethod.Keyboard)
     {
         <script>
             document.addEventListener('keydown', event => {
@@ -98,12 +121,12 @@
         </script>
     }
     <div class="scoreboard">
-        @foreach (PlayerScore playerScore in _points)
+        @foreach (var playerScore in _points)
         {
             <p>@(new MarkupString(GetPacmanColorByPlayer(playerScore.PlayerId))) Player @(playerScore.PlayerId + 1): @playerScore.Points points</p>
         }
     </div>
-    <br />
+    <br/>
 
     <table class="game-grid">
         @for (var i = 0; i < _grid.Height; i++)
@@ -112,108 +135,107 @@
                 @for (var j = 0; j < _grid.Width; j++)
                 {
                     // get current positions enemy, player and tile
-                    EnemyModel enemyAtPosition = _enemies.FirstOrDefault(e => e.Position == new Point(j, i));                    
-                    string playerAtPosition = "";
-                    foreach (var coordinate in _playerCoordinates)
+                    var enemyAtPosition = _enemies.FirstOrDefault(e => e.Position == new Point(j, i));
+                    var playerAtPosition = "";
+                    foreach (var coordinates in _playerCoordinates.Select(x => x.Split(',')))
                     {
-                        var coordinateSplit = coordinate.Split(',');
-                        if (int.Parse(coordinateSplit[1]) == j && int.Parse(coordinateSplit[2]) == i)
+                        if (int.Parse(coordinates[1]) == j && int.Parse(coordinates[2]) == i)
                         {
-                            playerAtPosition = coordinateSplit[0];
+                            playerAtPosition = coordinates[0];
                         }
                     }
-                    EnumTileType tileType = _grid.GetTile(j, i);
+                    var tileType = _grid.GetTile(j, i);
 
                     // if player at current position - render player
                     if (playerAtPosition != "")
                     {
                         <td class="grid-cell">
                             <center>
-                            @(new MarkupString(GetPacmanColorByPlayer(int.Parse(playerAtPosition))))
+                                @(new MarkupString(GetPacmanColorByPlayer(int.Parse(playerAtPosition))))
                             </center>
                         </td>
-                    } else
-                    // no player at current position - render enemy
-                    if (enemyAtPosition != null)
-                    {
-                        <td class="grid-cell">
-                            <center>
-                                @(new MarkupString(GetGhostColorByChar(enemyAtPosition.Character)))
-                            </center>
-                        </td>
-                    } else
-                    // no player or enemy at current position - render tile
-                    {
-                        switch(tileType)
-                        {
-                            case EnumTileType.Wall:
-                                @(new MarkupString("<td class='grid-cell wall'></td>"))
-                                break;
-                            case EnumTileType.Pellet:
-                                @(new MarkupString("<td class='grid-cell'><center><div class='pellet'></center></div></td>"))
-                                break;
-                            default:
-                                @(new MarkupString("<td class='grid-cell'></td>"))
-                                break;
-                        }
                     }
+                    else
+                    // no player at current position - render enemy
+                        if (enemyAtPosition != null)
+                        {
+                            <td class="grid-cell">
+                                <center>
+                                    @(new MarkupString(GetGhostColorByChar(enemyAtPosition.Character)))
+                                </center>
+                            </td>
+                        }
+                        else
+                        // no player or enemy at current position - render tile
+                        {
+                            switch (tileType)
+                            {
+                                case EnumTileType.Wall:
+                                    @(new MarkupString("<td class='grid-cell wall'></td>"))
+                                    break;
+                                case EnumTileType.Pellet:
+                                    @(new MarkupString("<td class='grid-cell'><center><div class='pellet'></center></div></td>"))
+                                    break;
+                                default:
+                                    @(new MarkupString("<td class='grid-cell'></td>"))
+                                    break;
+                            }
+                        }
                 }
             </tr>
         }
     </table>
 
-
-    @if (selectedInputMethod == EnumInputMethod.Buttons)
+    @if (_selectedInputMethod == EnumInputMethod.Buttons)
     {
-        <br />
+        <br/>
         <button @onclick="async () => _input.ChangeDirection(EnumDirection.Up.ToString())">↑</button>
 
-        <br />
+        <br/>
         <button @onclick="async () => _input.ChangeDirection(EnumDirection.Left.ToString())">←</button>
         <button @onclick="async () => _input.ChangeDirection(EnumDirection.Right.ToString())">→</button>
 
-        <br />
+        <br/>
         <button @onclick="async () => _input.ChangeDirection(EnumDirection.Down.ToString())">↓</button>
-        <br />
+        <br/>
     }
 }
 
 @code {
-    private EnumInputMethod selectedInputMethod = EnumInputMethod.Keyboard;
+    private EnumInputMethod _selectedInputMethod = EnumInputMethod.Keyboard;
+    private bool IsKeyboardSelected => _selectedInputMethod == EnumInputMethod.Keyboard;
+    private bool IsButtonsSelected => _selectedInputMethod == EnumInputMethod.Buttons;
+    private bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
 
-    private bool IsKeyboardSelected => selectedInputMethod == EnumInputMethod.Keyboard;
-    private bool IsButtonsSelected => selectedInputMethod == EnumInputMethod.Buttons;
-    private GridModel _grid = new GridModel();
     private readonly TileGridBuilderOptions _gridOptions = new();
+    private List<PlayerStateBaseModel> _players = new();
+    private GridModel _grid = new();
     private List<EnemyModel> _enemies = new();
     private HubConnection? _hubConnection;
-    private int _tickNumber = 0;
     private List<PlayerScore> _points = new();
     private List<string> _playerCoordinates = new();
-    EnumDirection _playerDirection = EnumDirection.Right;
-    private EnumGameState _gameState = EnumGameState.Initializing;
-    private StateModel _stateModel = new(EnumGameState.Initializing, new(), new());
-    InputService _input;
+    private EnumGameState? _gameState;
+    private InputService _input;
+    private string PlayerName { get; set; }
+
+    [Parameter]
+    public string SessionId { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        _hubConnection = new HubConnectionBuilder()
-        .WithUrl(Navigation.ToAbsoluteUri("/gamehub"))
-        .Build();
+        _hubConnection = new HubConnectionBuilder().WithUrl(Navigation.ToAbsoluteUri("/gamehub")).Build();
+        _hubConnection.On<List<PlayerStateBaseModel>>("Joined", OnJoined);
+        _hubConnection.On<EnumGameState>("StateChange", OnStateChange);
         _hubConnection.On<GridModel>("ReceiveGrid", OnReceiveGrid);
         _hubConnection.On<List<EnemyModel>>("ReceiveEnemies", OnReceiveEnemies);
-        _hubConnection.On<StateModel>("Tick", OnTickAsync);
-
-        _hubConnection.On<EnumGameState>("Starting", state =>
-        {
-            Console.WriteLine(state);
-            _gameState = state;
-            StateHasChanged();
-        });
+        _hubConnection.On<StateModel>("Tick", OnTick);
+        PlayerName = $"Player {new Random().Next()}";
+        SetInputMethod();
 
         try
         {
             await _hubConnection.StartAsync();
+            await _hubConnection.InvokeAsync("JoinSession", SessionId, PlayerName);
         }
         catch (Exception ex)
         {
@@ -222,31 +244,77 @@
         StateHasChanged();
     }
 
-    private void ChangeInputMethod(EnumInputMethod method)
+    public async ValueTask DisposeAsync()
     {
-        selectedInputMethod = method;
-    }
-
-    private void SetInputMethod()
-    {
-        _input = new InputService(selectedInputMethod, _hubConnection);
-    }
-
-    private async Task Start()
-    {
-        if (_hubConnection is not null && _gridOptions is not null)
+        if (_hubConnection is not null)
         {
-            Invoker invoker = new Invoker();
-            invoker.SetCommand(new StartCommand(_hubConnection, _gridOptions));
-            invoker.InvokeCommand();
-            SetInputMethod();
+            await _hubConnection.DisposeAsync();
         }
+    }
+
+    #region HubListeners
+
+    private async Task OnJoined(List<PlayerStateBaseModel> players)
+    {
+        Console.WriteLine($"Players: {players.Count}");
+        _players = players;
+        StateHasChanged();
+    }
+
+    private async Task OnStateChange(EnumGameState state)
+    {
+        _gameState = state;
+        SetInputMethod();
         StateHasChanged();
     }
 
     private async Task OnReceiveGrid(GridModel receivedGrid)
     {
         _grid = receivedGrid;
+        StateHasChanged();
+    }
+
+    private async Task OnReceiveEnemies(List<EnemyModel> receivedEnemies)
+    {
+        _enemies = receivedEnemies;
+        StateHasChanged();
+    }
+
+    private async Task OnTick(StateModel model)
+    {
+        _gameState = model.GameState;
+
+        _playerCoordinates = model.Coordinates;
+        _points = new();
+        for (var i = 0; i < model.Points.Count; i++)
+        {
+            _points.Add(new(i, model.Points[i]));
+        }
+
+        _points = _points.OrderByDescending(ps => ps.Points).ToList();
+        StateHasChanged();
+    }
+
+    #endregion
+
+    private void ChangeInputMethod(EnumInputMethod method)
+    {
+        _selectedInputMethod = method;
+    }
+
+    private void SetInputMethod()
+    {
+        _input = new(_selectedInputMethod, _hubConnection);
+    }
+
+    private void Start()
+    {
+        if (_hubConnection is not null)
+        {
+            var invoker = new Invoker();
+            invoker.SetCommand(new StartCommand(_hubConnection, _gridOptions));
+            invoker.InvokeCommand();
+        }
         StateHasChanged();
     }
 
@@ -263,21 +331,11 @@
         }
     }
 
-
-    private async Task OnReceiveEnemies(List<EnemyModel> receivedEnemies)
-    {
-        _enemies = receivedEnemies;
-        StateHasChanged();
-    }
-
-    public bool IsConnected =>
-      _hubConnection?.State == HubConnectionState.Connected;
-
-    public async ValueTask DisposeAsync()
+    private async Task ChangeName()
     {
         if (_hubConnection is not null)
         {
-            await _hubConnection.DisposeAsync();
+            await _hubConnection.InvokeAsync("OnChangeName", PlayerName);
         }
     }
 
@@ -288,31 +346,10 @@
 
         public PlayerScore(int playerId, int points)
         {
-            this.PlayerId = playerId;
-            this.Points = points;
+            PlayerId = playerId;
+            Points = points;
         }
     }
-
-    private async Task OnTickAsync(StateModel model)
-    {
-        _stateModel = model;
-        _gameState = model.GameState;
-
-        _playerCoordinates = model.Coordinates;
-        _points = new List<PlayerScore>();
-        for(int i = 0; i < model.Points.Count; i++)
-        {
-            _points.Add(new PlayerScore(i, model.Points[i]));    
-        }
-
-        _points = _points.OrderByDescending(ps => ps.Points).ToList();
-        Console.WriteLine(model.Coordinates.First());
-        _tickNumber++;
-        StateHasChanged();
-    }
-
-    
-
 }
 
 @functions {
@@ -325,43 +362,29 @@
     public string GetGhostSvgString(string color = "2803ff")
     {
         return "<svg width=\"20px\" height=\"20px\" viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">" +
-            $"<path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M22 19.2058V12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12V19.2058C2 20.4896 3.35098 21.3245 4.4992 20.7504C5.42726 20.2864 6.5328 20.3552 7.39614 20.9308C8.36736 21.5782 9.63264 21.5782 10.6039 20.9308L10.9565 20.6957C11.5884 20.2744 12.4116 20.2744 13.0435 20.6957L13.3961 20.9308C14.3674 21.5782 15.6326 21.5782 16.6039 20.9308C17.4672 20.3552 18.5727 20.2864 19.5008 20.7504C20.649 21.3245 22 20.4896 22 19.2058ZM16 10.5C16 11.3284 15.5523 12 15 12C14.4477 12 14 11.3284 14 10.5C14 9.67157 14.4477 9 15 9C15.5523 9 16 9.67157 16 10.5ZM9 12C9.55228 12 10 11.3284 10 10.5C10 9.67157 9.55228 9 9 9C8.44772 9 8 9.67157 8 10.5C8 11.3284 8.44772 12 9 12Z\" fill=\"#{color}\" />" +
-            "</svg>";
+               $"<path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M22 19.2058V12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12V19.2058C2 20.4896 3.35098 21.3245 4.4992 20.7504C5.42726 20.2864 6.5328 20.3552 7.39614 20.9308C8.36736 21.5782 9.63264 21.5782 10.6039 20.9308L10.9565 20.6957C11.5884 20.2744 12.4116 20.2744 13.0435 20.6957L13.3961 20.9308C14.3674 21.5782 15.6326 21.5782 16.6039 20.9308C17.4672 20.3552 18.5727 20.2864 19.5008 20.7504C20.649 21.3245 22 20.4896 22 19.2058ZM16 10.5C16 11.3284 15.5523 12 15 12C14.4477 12 14 11.3284 14 10.5C14 9.67157 14.4477 9 15 9C15.5523 9 16 9.67157 16 10.5ZM9 12C9.55228 12 10 11.3284 10 10.5C10 9.67157 9.55228 9 9 9C8.44772 9 8 9.67157 8 10.5C8 11.3284 8.44772 12 9 12Z\" fill=\"#{color}\" />" +
+               "</svg>";
     }
 
     public string GetPacmanColorByPlayer(int player)
     {
-        switch (player)
+        return player switch
         {
-            case 0: 
-                return GetPacmanSvgString("F0C419");
-                break;
-            case 1:
-                return GetPacmanSvgString("34eb5e");
-                break;
-            case 2:
-                return GetPacmanSvgString("344feb");
-                break;
-            default:
-                return GetPacmanSvgString();
-                break;
-        }
+            0 => GetPacmanSvgString("F0C419"),
+            1 => GetPacmanSvgString("34eb5e"),
+            2 => GetPacmanSvgString("344feb"),
+            _ => GetPacmanSvgString()
+            };
     }
 
     public string GetGhostColorByChar(char character)
     {
-        switch (character)
+        return character switch
         {
-            case 'B':
-                return GetGhostSvgString("2803ff");
-                break;
-            case 'R':
-                return GetGhostSvgString("ff0303");
-                break;
-            default:
-                return GetGhostSvgString();
-                break;
-        }
+            'B' => GetGhostSvgString("2803ff"),
+            'R' => GetGhostSvgString("ff0303"),
+            _ => GetGhostSvgString()
+            };
     }
 
 }
