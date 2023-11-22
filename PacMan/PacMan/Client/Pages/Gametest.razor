@@ -123,7 +123,7 @@
     <div class="scoreboard">
         @foreach (var playerScore in _points)
         {
-            <p>@(new MarkupString(GetPacmanColorByPlayer(playerScore.PlayerId))) Player @(playerScore.PlayerId + 1): @playerScore.Points points</p>
+            <p>@(new MarkupString(GetPacmanColorByPlayer(playerScore.PlayerId))) @(playerScore.PlayerName): @playerScore.Points points</p>
         }
     </div>
     <br/>
@@ -290,7 +290,7 @@
         _points = new();
         for (var i = 0; i < model.Points.Count; i++)
         {
-            _points.Add(new(i, model.Points[i]));
+            _points.Add(new(i, _players[i].Name, model.Points[i]));
         }
 
         _points = _points.OrderByDescending(ps => ps.Points).ToList();
@@ -343,12 +343,14 @@
 
     private class PlayerScore
     {
+        public string PlayerName { get; set; }
         public int PlayerId { get; set; }
         public int Points { get; set; }
 
-        public PlayerScore(int playerId, int points)
+        public PlayerScore(int playerId, string playerName, int points)
         {
             PlayerId = playerId;
+            PlayerName = playerName;
             Points = points;
         }
     }

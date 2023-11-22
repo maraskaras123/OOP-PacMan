@@ -28,20 +28,33 @@ namespace PacMan.Shared.Models
             _pelletsFactory = new PelletTileFactory();
             _wallsFactory = new WallTileFactory();
             Tiles = new();
+            for (int i = 0; i < _width; i++)
+            {
+                for (int j = 0; j < _height; j++)
+                {
+                    if (j == 0 || i == 0 || i == _width - 1 || j == _height - 1 )
+                    {
+                        var tile = _wallsFactory.CreateTile();
+                        Tiles.Add($"{i}_{j}", tile);
+                    }
+                }
+            }
+
+
             var rnd = new Random();
             for (var i = 0; i < tiles; i++)
             {
                 var r1 = rnd.Next(0, _height);
                 var r2 = rnd.Next(0, _width);
                 var tile = GetTile(r1, r2);
-                if (tile is { Type: EnumTileType.Wall })
+                if (tile is not { Type: EnumTileType.Wall })
                 {
                     tile = _wallsFactory.CreateTile();
                     Tiles.Add($"{r1}_{r2}", tile);
                 }
+                
             }
 
-            // intuitively it makes no sense to me why i is width and j is height but here we are
             for (var i = 0; i < _width; i++)
             {
                 for (var j = 0; j < _height; j++)
