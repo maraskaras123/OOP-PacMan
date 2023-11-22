@@ -121,7 +121,7 @@
         </script>
     }
     <div class="scoreboard">
-        @foreach (var playerScore in _points)
+        @foreach (var playerScore in _playerInfo)
         {
             <p>@(new MarkupString(GetPacmanColorByPlayer(playerScore.PlayerId))) @(playerScore.PlayerName): @playerScore.Points points</p>
         }
@@ -212,7 +212,7 @@
     private GridModel _grid = new();
     private List<EnemyModel> _enemies = new();
     private HubConnection? _hubConnection;
-    private List<PlayerScore> _points = new();
+    private List<PlayerInfo> _playerInfo = new();
     private List<string> _playerCoordinates = new();
     private EnumGameState? _gameState;
     private InputService _input;
@@ -287,13 +287,13 @@
         _gameState = model.GameState;
 
         _playerCoordinates = model.Coordinates;
-        _points = new();
+        _playerInfo = new();
         for (var i = 0; i < model.Points.Count; i++)
         {
-            _points.Add(new(i, _players[i].Name, model.Points[i]));
+            _playerInfo.Add(new(i, _players[i].Name, model.Points[i]));
         }
 
-        _points = _points.OrderByDescending(ps => ps.Points).ToList();
+        _playerInfo = _playerInfo.OrderByDescending(ps => ps.Points).ToList();
         StateHasChanged();
     }
 
@@ -341,13 +341,13 @@
         }
     }
 
-    private class PlayerScore
+    private class PlayerInfo
     {
         public string PlayerName { get; set; }
         public int PlayerId { get; set; }
         public int Points { get; set; }
 
-        public PlayerScore(int playerId, string playerName, int points)
+        public PlayerInfo(int playerId, string playerName, int points)
         {
             PlayerId = playerId;
             PlayerName = playerName;
