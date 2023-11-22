@@ -19,7 +19,10 @@ namespace PacMan.Client.Services
                     _currentInputHandler = new ButtonsInputHandler();
                     break;
             }
-            _currentInputHandler.SetupConnection(connection);
+            if(_currentInputHandler != null)
+            {
+                _currentInputHandler.SetupConnection(connection);
+            }
         }
 
         public void ChangeDirection(string key)

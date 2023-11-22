@@ -8,14 +8,16 @@ namespace PacMan.Client.Classes
     {
         private readonly HubConnection _connection;
         private readonly TileGridBuilderOptions _options;
+        private readonly int _endPoints;
 
-        public StartCommand(HubConnection connection, TileGridBuilderOptions options)
+        public StartCommand(HubConnection connection, TileGridBuilderOptions options, int endPoints)
         {
             _connection = connection;
             _options = options;
+            _endPoints = endPoints;
         }
 
-        public async Task<bool> StartGame(HubConnection connection, TileGridBuilderOptions options)
+        public async Task<bool> StartGame(HubConnection connection, TileGridBuilderOptions options, int endPoints)
         {
             if (connection is null || options is null)
             {
@@ -29,7 +31,7 @@ namespace PacMan.Client.Classes
                     await connection.StartAsync();
                 }
 
-                await connection.InvokeAsync("OnStart", options);
+                await connection.InvokeAsync("OnStart", options, endPoints);
                 return true;
             }
             catch (Exception ex)
@@ -41,7 +43,7 @@ namespace PacMan.Client.Classes
 
         public void Execute()
         {
-            StartGame(_connection, _options);
+            StartGame(_connection, _options, _endPoints);
         }
     }
 }
