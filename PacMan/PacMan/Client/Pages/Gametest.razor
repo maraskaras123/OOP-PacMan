@@ -64,6 +64,8 @@
         <input @bind="_gridOptions.Height"/>
         <label>random tiles</label>
         <input @bind="_gridOptions.RandomTileCount"/>
+        <label>set points for game end condition</label>
+        <input @bind="_endPoints"/>
     }
 
     <h5>Choose your input method:</h5>
@@ -102,6 +104,14 @@
 @if (_gameState == EnumGameState.Starting)
 {
     <p>Game is starting...</p>
+    @if (_selectedInputMethod == EnumInputMethod.Keyboard)
+    {
+        <script>
+            document.addEventListener('keydown', event => {
+                DotNet.invokeMethodAsync('PacMan.Client', 'HandleKeyboardInput', event.key);
+            });
+        </script>
+    }
 }
 
 @if (_gameState == EnumGameState.Finished)
@@ -112,14 +122,6 @@
 
 @if (_gameState == EnumGameState.Running)
 {
-    @if (_selectedInputMethod == EnumInputMethod.Keyboard)
-    {
-        <script>
-            document.addEventListener('keydown', event => {
-                DotNet.invokeMethodAsync('PacMan.Client', 'HandleKeyboardInput', event.key);
-            });
-        </script>
-    }
     <div class="scoreboard">
         @foreach (var playerScore in _playerInfo)
         {
@@ -216,6 +218,7 @@
     private List<string> _playerCoordinates = new();
     private EnumGameState? _gameState;
     private InputService _input;
+    private int _endPoints = 100;
     private string PlayerName { get; set; }
 
     [Parameter]
@@ -314,7 +317,7 @@
         if (_hubConnection is not null)
         {
             var invoker = new Invoker();
-            invoker.SetCommand(new StartCommand(_hubConnection, _gridOptions));
+            invoker.SetCommand(new StartCommand(_hubConnection, _gridOptions, _endPoints));
             invoker.InvokeCommand();
         }
         StateHasChanged();

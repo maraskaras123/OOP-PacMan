@@ -63,7 +63,6 @@ namespace PacMan.Server.Hubs
                 await Clients.Caller.JoinRejected();
                 return;
             }
-
             session.Connections.Add(Context.ConnectionId, name);
             await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
             await Clients.Group(sessionId)
@@ -72,11 +71,11 @@ namespace PacMan.Server.Hubs
         }
 
         [HubMethodName("OnStart")]
-        public async Task OnStartAsync(TileGridBuilderOptions gridOptions)
+        public async Task OnStartAsync(TileGridBuilderOptions gridOptions, int endPoints)
         {
             var storage = Storage.GetInstance();
             var session = storage.FindSession(Context.ConnectionId) ?? throw new InvalidOperationException();
-            _gameService.Start(session.Value, gridOptions);
+            _gameService.Start(session.Value, gridOptions, endPoints);
             await Clients.Group(session.Key).StateChange(EnumGameState.Starting);
             await Clients.Group(session.Key).ReceiveGrid(session.Value.Grid.ConvertForSending());
             await Clients.Group(session.Key).ReceiveEnemies(session.Value.Enemies

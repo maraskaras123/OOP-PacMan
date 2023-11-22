@@ -10,7 +10,7 @@ namespace PacMan.Server.Services
     public interface IGameService
     {
         void Reset(GameStateModel session);
-        void Start(GameStateModel session, TileGridBuilderOptions gridOptions);
+        void Start(GameStateModel session, TileGridBuilderOptions gridOptions, int endPoints);
         Task Init(string sessionId, GameStateModel session);
     }
 
@@ -20,6 +20,7 @@ namespace PacMan.Server.Services
         private readonly EnemyFactory _redGhostFactory;
         private readonly EnemyFactory _blueGhostFactory;
         private readonly TileFactory _emptyTileFactory;
+        private int _endPoints;
 
         public GameService(IHubContext<GameHub, IGameHubClient> hubContext)
         {
@@ -27,6 +28,7 @@ namespace PacMan.Server.Services
             _blueGhostFactory = new BlueGhostFactory();
             _emptyTileFactory = new EmptyTileFactory();
             _hubContext = hubContext;
+            _endPoints = 100;
         }
 
         public void Reset(GameStateModel session)
@@ -34,7 +36,7 @@ namespace PacMan.Server.Services
             session.GameState = EnumGameState.Initializing;
         }
 
-        public void Start(GameStateModel session, TileGridBuilderOptions gridOptions)
+        public void Start(GameStateModel session, TileGridBuilderOptions gridOptions, int points)
         {
             CreateEnemies(session);
             session.GameState = EnumGameState.Starting;
@@ -44,6 +46,7 @@ namespace PacMan.Server.Services
                 .WithRandomTiles(gridOptions.RandomTileCount)
                 .Build();
             session.Grid = grid;
+            _endPoints = points;
         }
 
         private void CreateEnemies(GameStateModel session)
@@ -165,7 +168,7 @@ namespace PacMan.Server.Services
                         break;
                 }
 
-                if (state.Value.Points >= 100)
+                if (state.Value.Points >= _endPoints)
                 {
                     session.GameState = EnumGameState.Finished;
                 }
