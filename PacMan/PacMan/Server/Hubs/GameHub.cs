@@ -3,13 +3,15 @@ using PacMan.Server.Services;
 using PacMan.Shared;
 using PacMan.Shared.Enums;
 using PacMan.Shared.Models;
+using PacMan.Shared.Observer;
 
 namespace PacMan.Server.Hubs
 {
     public interface IGameHubClient
     {
         Task JoinRejected();
-        Task Joined(List<PlayerStateBaseModel> sessions);
+        Task Joined(List<PlayerStateBaseModel> players);
+        Task PlayerUpdate(bool add, string name);
         Task RegisteredUserId(int userId);
         Task StateChange(EnumGameState gameState);
         Task Tick(StateModel state);
@@ -38,6 +40,7 @@ namespace PacMan.Server.Hubs
             if (session is not null)
             {
                 session.Value.Value.Connections.Remove(Context.ConnectionId);
+                session.Value.Value.Publisher.RemoveSubscriber(Context.ConnectionId);
                 if (!session.Value.Value.Connections.Any())
                 {
                     storage.RemoveSession(session.Value.Key);
@@ -65,8 +68,10 @@ namespace PacMan.Server.Hubs
             }
             session.Connections.Add(Context.ConnectionId, name);
             await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
-            await Clients.Group(sessionId)
-                .Joined(session.Connections.Select(x => new PlayerStateBaseModel { Name = x.Value }).ToList());
+            await Clients.Caller.Joined(session.Connections.Select(x => new PlayerStateBaseModel { Name = x.Value }).ToList());
+            await session.Publisher.Notify(true, name);
+            session.Publisher.AddSubscriber(Context.ConnectionId,
+                new Subscriber((a, b) => Clients.Client(Context.ConnectionId).PlayerUpdate(a, b)));
             await Clients.Caller.StateChange(session.GameState);
         }
 
