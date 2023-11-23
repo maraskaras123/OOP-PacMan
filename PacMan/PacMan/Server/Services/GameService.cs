@@ -91,6 +91,18 @@ namespace PacMan.Server.Services
             }
         }
 
+        private void TouchingEnemy(GameStateModel session, PlayerStateModel state)
+        {
+            foreach(var enemy in session.Enemies)
+                {
+                    if(state.Coordinates == enemy.Position)
+                    {
+                        state.Points -=10;
+                        enemy.Respawn(session);
+                    }
+                }
+        }
+
         // Game Logic
         private async Task Tick(string sessionId, GameStateModel session)
         {
@@ -102,9 +114,11 @@ namespace PacMan.Server.Services
 
             foreach (var state in session.State)
             {
+                TouchingEnemy(session, state.Value);
                 var currentX = state.Value.Coordinates.X;
                 var currentY = state.Value.Coordinates.Y;
                 Tile desiredTile;
+                
                 switch (state.Value.Direction)
                 {
                     case EnumDirection.Up:
@@ -167,6 +181,7 @@ namespace PacMan.Server.Services
 
                         break;
                 }
+                TouchingEnemy(session, state.Value);
 
                 if (state.Value.Points >= _endPoints)
                 {

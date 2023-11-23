@@ -45,10 +45,13 @@ namespace PacMan.Shared.Models
 
         private bool CanMoveTo(GameStateModel session, Point nextPosition)
         {
-            // Check out-of-bounds conditions
-            if (nextPosition.X < 0 || nextPosition.X > 30 || nextPosition.Y < 0 || nextPosition.Y > 30)
+            
+            foreach( var enemy in session.Enemies)
             {
-                return false;
+                if(nextPosition == enemy.Position)
+                {
+                    return false;
+                }
             }
 
             // Check if the next position is a wall
@@ -59,6 +62,26 @@ namespace PacMan.Shared.Models
         {
             var rand = new Random();
             return Directions[rand.Next(Directions.Count)];
+        }
+
+        public void Respawn(GameStateModel session)
+        {
+            var rand = new Random();
+            bool spawned = false;
+            while(!spawned)
+            {
+                Point point = new Point(rand.Next(session.Grid.Width), rand.Next(session.Grid.Height));
+                foreach(var enemy in session.Enemies)
+                {
+                    if(point == enemy.Position || session.Grid.GetTile(point.X, point.Y).Type == EnumTileType.Wall)
+                    {
+                        break;
+                    }
+                    Position = point;
+                    spawned = true;
+                    break;
+                }
+            }
         }
     }
 }
