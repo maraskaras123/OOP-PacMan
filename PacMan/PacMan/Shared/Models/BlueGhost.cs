@@ -1,4 +1,5 @@
 using System.Drawing;
+using PacMan.Shared.Enums;
 
 namespace PacMan.Shared.Models
 {
@@ -79,14 +80,15 @@ namespace PacMan.Shared.Models
                 {
                     // I'm assuming Storage.Walls is accessible from this scope
                     // Sorry i changed it up, maybe i should revert back to points
-                    if (session.Grid.GetTile(neighborPos.X, neighborPos.Y).Type == Enums.EnumTileType.Wall)
+                    if (session.Grid.GetTile(neighborPos.X, neighborPos.Y).Type == Enums.EnumTileType.Wall || IsOcupiedByEnemy(session, neighborPos))
                     {
                         continue;
                     }
 
                     var neighbor = new Node
                     {
-                        Position = neighborPos, Parent = currentNode,
+                        Position = neighborPos,
+                        Parent = currentNode,
                         G = currentNode.G + 1
                     };
                     neighbor.H = Math.Abs(neighbor.Position.X - end.X) + Math.Abs(neighbor.Position.Y - end.Y);
@@ -106,12 +108,44 @@ namespace PacMan.Shared.Models
             return new(); // No path could be found
         }
 
+        private static bool IsOcupiedByEnemy(GameStateModel session, Point point)
+        {
+            foreach (var enemy in session.Enemies)
+            {
+                if (point == enemy.Position)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         private static IEnumerable<Point> GetNeighbors(Point current)
         {
             yield return new(current.X - 1, current.Y);
             yield return new(current.X + 1, current.Y);
             yield return new(current.X, current.Y - 1);
             yield return new(current.X, current.Y + 1);
+        }
+
+        public void Respawn(GameStateModel session)
+        {
+            var rand = new Random();
+            bool spawned = false;
+            while (!spawned)
+            {
+                Point point = new Point(rand.Next(session.Grid.Width), rand.Next(session.Grid.Height));
+                foreach (var enemy in session.Enemies)
+                {
+                    if (point == enemy.Position || session.Grid.GetTile(point.X, point.Y).Type == EnumTileType.Wall)
+                    {
+                        break;
+                    }
+                    Position = point;
+                    spawned = true;
+                    break;
+                }
+            }
         }
 
         private class Node
