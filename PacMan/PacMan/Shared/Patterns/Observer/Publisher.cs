@@ -1,4 +1,4 @@
-﻿namespace PacMan.Shared.Observer
+﻿namespace PacMan.Shared.Patterns.Observer
 {
     public class Publisher
     {
@@ -16,10 +16,7 @@
 
         public async Task Notify(bool add, string name)
         {
-            foreach (var subscriber in Subscribers)
-            {
-                await subscriber.Value.Notify(add, name);
-            }
+            foreach (var subscriber in Subscribers) await subscriber.Value.Notify(add, name);
         }
     }
 }

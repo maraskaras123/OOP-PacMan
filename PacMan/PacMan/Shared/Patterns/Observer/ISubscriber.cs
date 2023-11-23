@@ -1,4 +1,4 @@
-﻿namespace PacMan.Shared.Observer
+﻿namespace PacMan.Shared.Patterns.Observer
 {
     public interface ISubscriber
     {

@@ -17,6 +17,5 @@
 
   <ItemGroup>
     <Folder Include="Helpers\" />
-    <Folder Include="Observer\" />
   </ItemGroup>
 </Project>

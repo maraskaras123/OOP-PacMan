@@ -225,6 +225,7 @@
             .WithUrl(Navigation.ToAbsoluteUri("/gamehub"))
             .Build();
         _hubConnection.On<List<PlayerStateBaseModel>>("Joined", OnJoined);
+        _hubConnection.On<bool, string>("PlayerUpdate", OnPlayerUpdate);
         _hubConnection.On<EnumGameState>("StateChange", OnStateChange);
         _hubConnection.On<GridModel>("ReceiveGrid", OnReceiveGrid);
         _hubConnection.On<List<EnemyModel>>("ReceiveEnemies", OnReceiveEnemies);
@@ -259,6 +260,14 @@
         Console.WriteLine($"Players: {players.Count}");
         _players = players;
         StateHasChanged();
+    }
+
+    private async Task OnPlayerUpdate(bool add, string name)
+    {
+        if (add)
+        {
+            _players.Add(new(){ Name = name });
+        }
     }
 
     private async Task OnStateChange(EnumGameState state)

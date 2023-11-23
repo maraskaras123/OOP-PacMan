@@ -2,7 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using MediatR;
 
-namespace PacMan.Shared.Mediator
+namespace PacMan.Shared.Patterns.Mediator
 {
     public class ApiMediator : ISender
     {

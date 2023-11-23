@@ -3,7 +3,7 @@ using PacMan.Server.Services;
 using PacMan.Shared;
 using PacMan.Shared.Enums;
 using PacMan.Shared.Models;
-using PacMan.Shared.Observer;
+using PacMan.Server.Patterns.Observer;
 
 namespace PacMan.Server.Hubs
 {
@@ -22,10 +22,12 @@ namespace PacMan.Server.Hubs
     public class GameHub : Hub<IGameHubClient>
     {
         private readonly IGameService _gameService;
+        private readonly IHubContext<GameHub, IGameHubClient> _hubContext;
 
-        public GameHub(IGameService gameService)
+        public GameHub(IGameService gameService, IHubContext<GameHub, IGameHubClient> hubContext)
         {
             _gameService = gameService;
+            _hubContext = hubContext;
         }
 
         public override async Task OnConnectedAsync()
@@ -70,8 +72,7 @@ namespace PacMan.Server.Hubs
             await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
             await Clients.Caller.Joined(session.Connections.Select(x => new PlayerStateBaseModel { Name = x.Value }).ToList());
             await session.Publisher.Notify(true, name);
-            session.Publisher.AddSubscriber(Context.ConnectionId,
-                new Subscriber((a, b) => Clients.Client(Context.ConnectionId).PlayerUpdate(a, b)));
+            session.Publisher.AddSubscriber(Context.ConnectionId, new Subscriber(_gameService, Context.ConnectionId));
             await Clients.Caller.StateChange(session.GameState);
         }
 

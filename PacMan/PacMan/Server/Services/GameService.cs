@@ -12,6 +12,7 @@ namespace PacMan.Server.Services
         void Reset(GameStateModel session);
         void Start(GameStateModel session, TileGridBuilderOptions gridOptions, int endPoints);
         Task Init(string sessionId, GameStateModel session);
+        Task PlayerUpdate(string connectionId, bool add, string name);
     }
 
     public class GameService : IGameService
@@ -34,6 +35,10 @@ namespace PacMan.Server.Services
         public void Reset(GameStateModel session)
         {
             session.GameState = EnumGameState.Initializing;
+            session.Enemies = new();
+            session.Grid = new();
+            session.Ticks = 0;
+            session.State = new();
         }
 
         public void Start(GameStateModel session, TileGridBuilderOptions gridOptions, int points)
@@ -66,19 +71,19 @@ namespace PacMan.Server.Services
             var rnd = new Random();
             foreach (var connection in session.Connections)
             {
-                var stateModel = new PlayerStateModel()
+                var stateModel = new PlayerStateModel
                     { Name = connection.Key, Direction = (EnumDirection)rnd.Next(0, 4) };
                 var coordinates = new Point(rnd.Next(session.Grid.Width), rnd.Next(session.Grid.Height));
                 while (session.Grid.Tiles[$"{coordinates.X}_{coordinates.Y}"].Type == EnumTileType.Wall)
-                {
                     coordinates = new(rnd.Next(session.Grid.Width), rnd.Next(session.Grid.Height));
-                }
 
                 stateModel.Coordinates = coordinates;
                 session.State.Add(connection.Key, stateModel);
 
                 await _hubContext.Clients.Group(sessionId).ReceiveGrid(session.Grid.ConvertForSending());
             }
+
+            await _hubContext.Clients.Group(sessionId).StateChange(session.GameState);
 
             while (session.GameState != EnumGameState.Finished)
             {
@@ -91,26 +96,25 @@ namespace PacMan.Server.Services
             }
         }
 
+        public async Task PlayerUpdate(string connectionId, bool add, string name)
+        {
+            await _hubContext.Clients.Client(connectionId).PlayerUpdate(add, name);
+        }
+
         private void TouchingEnemy(GameStateModel session, PlayerStateModel state)
         {
-            foreach(var enemy in session.Enemies)
-                {
-                    if(state.Coordinates == enemy.Position)
-                    {
-                        state.Points -=10;
-                        enemy.Respawn(session);
-                    }
-                }
+            foreach (var enemy in session.Enemies.Where(enemy => state.Coordinates == enemy.Position))
+            {
+                state.Points -= 10;
+                enemy.Respawn(session);
+            }
         }
 
         // Game Logic
         private async Task Tick(string sessionId, GameStateModel session)
         {
             await _hubContext.Clients.Group(sessionId).ReceiveGrid(session.Grid.ConvertForSending());
-            foreach (var enemy in session.Enemies)
-            {
-                enemy.Move(session);
-            }
+            foreach (var enemy in session.Enemies) enemy.Move(session);
 
             foreach (var state in session.State)
             {
@@ -118,7 +122,7 @@ namespace PacMan.Server.Services
                 var currentX = state.Value.Coordinates.X;
                 var currentY = state.Value.Coordinates.Y;
                 Tile desiredTile;
-                
+
                 switch (state.Value.Direction)
                 {
                     case EnumDirection.Up:
@@ -181,12 +185,10 @@ namespace PacMan.Server.Services
 
                         break;
                 }
+
                 TouchingEnemy(session, state.Value);
 
-                if (state.Value.Points >= _endPoints)
-                {
-                    session.GameState = EnumGameState.Finished;
-                }
+                if (state.Value.Points >= _endPoints) session.GameState = EnumGameState.Finished;
             }
 
             var enemyData = session.Enemies
