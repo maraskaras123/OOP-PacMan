@@ -1,6 +1,6 @@
 ﻿using MediatR;
 
-namespace PacMan.Shared.Mediator
+namespace PacMan.Shared.Patterns.Mediator
 {
     public interface IRequestHandler<in TRequest, TResponse> where TRequest : IRequest<TResponse>
     {

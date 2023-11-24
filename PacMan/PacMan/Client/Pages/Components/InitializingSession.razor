@@ -1,0 +1,104 @@
+﻿<form>
+    <div class="form-group row">
+        <label for="PlayerName" class="col-sm-2 col-form-label">Choose your name</label>
+        <div class="col-sm-4">
+            <InputText class="form-control" @bind-Value="@Session.PlayerName"></InputText>
+        </div>
+        <button type="button" class="btn btn-primary" @onclick="@Session.OnChangeName"
+                disabled="@(Session.HubConnection?.State != HubConnectionState.Connected)">Change</button>
+    </div>
+    @if (Session.Players.FirstOrDefault()?.Name == Session.CurrentPlayerName)
+    {
+        <div class="form-group row">
+            <label for="Width" class="col-sm-2 col-form-label">Grid Width</label>
+            <div class="col-sm-4">
+                <InputNumber class="form-control" @bind-Value="Session.GridOptions.Width"></InputNumber>
+            </div>
+        </div>
+        <div class="form-group row">
+            <label for="Height" class="col-sm-2 col-form-label">Grid Height</label>
+            <div class="col-sm-4">
+                <InputNumber class="form-control" @bind-Value="Session.GridOptions.Height"></InputNumber>
+            </div>
+        </div>
+        <div class="form-group row">
+            <label for="RandomTileCount" class="col-sm-2 col-form-label">Random tile count</label>
+            <div class="col-sm-4">
+                <InputNumber class="form-control" @bind-Value="Session.GridOptions.RandomTileCount"></InputNumber>
+            </div>
+        </div>
+        <div class="form-group row">
+            <label for="EndPoints" class="col-sm-2 col-form-label">Points required for win</label>
+            <div class="col-sm-4">
+                <InputNumber class="form-control" @bind-Value="Session.EndPoints"></InputNumber>
+            </div>
+        </div>
+    }
+    <fieldset class="form-group">
+        <div class="row">
+            <legend class="col-sm-2 col-form-label">Input method</legend>
+            <div class="col-sm-4">
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="inputMethod" id="Keyboard"
+                           @onchange="() => Session.OnChangeInputMethod(EnumInputMethod.Keyboard)"
+                           checked="@(Session.SelectedInputMethod == EnumInputMethod.Keyboard)" />
+                    <label class="form-check-label" for="Keyboard">Keyboard</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="inputMethod" id="Buttons"
+                           @onchange="() => Session.OnChangeInputMethod(EnumInputMethod.Buttons)"
+                           checked="@(Session.SelectedInputMethod == EnumInputMethod.Buttons)">
+                    <label class="form-check-label" for="Buttons">On-Screen Buttons</label>
+                </div>
+            </div>
+
+        </div>
+    </fieldset>
+</form>
+
+<div class="w-50">
+    <table class="table table-bordered">
+        <thead>
+        <tr>
+            <th>Name</th>
+        </tr>
+        </thead>
+        <tbody>
+            @foreach (var player in Session.Players)
+        {
+            <tr>
+                <td class="@GetPlayerClass(player.Name)">@player.Name</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+
+@if (Session.Players.FirstOrDefault()?.Name == Session.CurrentPlayerName)
+{
+    <br/>
+    <button class="btn btn-success" @onclick="Session.OnStart"
+            disabled="@(Session.HubConnection?.State != HubConnectionState.Connected)">
+        <span class="oi oi-circle-check" title="circle-check" aria-hidden="true"></span>
+        Start
+    </button>
+}
+
+@code {
+
+    [CascadingParameter]
+    public Session Session { get; set; }
+
+    private string GetPlayerClass(string playerName)
+    {
+        return playerName == Session.CurrentPlayerName && playerName == Session.Players.FirstOrDefault()?.Name
+            ? "table-success"
+            : playerName == Session.CurrentPlayerName
+                ? "table-primary"
+                : playerName == Session.Players.FirstOrDefault()?.Name
+                    ? "table-warning"
+                    : "";
+    }
+
+}

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using PacMan.Server.Patterns.Observer;
 using PacMan.Server.Services;
 using PacMan.Shared;
 using PacMan.Shared.Enums;
@@ -9,8 +10,8 @@ namespace PacMan.Server.Hubs
     public interface IGameHubClient
     {
         Task JoinRejected();
-        Task Joined(List<PlayerStateBaseModel> sessions);
-        Task RegisteredUserId(int userId);
+        Task Joined(List<PlayerStateBaseModel> players);
+        Task PlayerUpdate(int index, string name);
         Task StateChange(EnumGameState gameState);
         Task Tick(StateModel state);
         Task ReceiveGrid(GridModel grid);
@@ -38,6 +39,7 @@ namespace PacMan.Server.Hubs
             if (session is not null)
             {
                 session.Value.Value.Connections.Remove(Context.ConnectionId);
+                session.Value.Value.Publisher.RemoveSubscriber(Context.ConnectionId);
                 if (!session.Value.Value.Connections.Any())
                 {
                     storage.RemoveSession(session.Value.Key);
@@ -45,7 +47,7 @@ namespace PacMan.Server.Hubs
                 else
                 {
                     await Clients.Group(session.Value.Key)
-                        .Joined(session.Value.Value.State.Select(x => new PlayerStateBaseModel { Name = x.Value.Name })
+                        .Joined(session.Value.Value.Connections.Select(x => new PlayerStateBaseModel { Name = x.Value })
                             .ToList());
                 }
             }
@@ -66,17 +68,19 @@ namespace PacMan.Server.Hubs
 
             session.Connections.Add(Context.ConnectionId, name);
             await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
-            await Clients.Group(sessionId)
-                .Joined(session.Connections.Select(x => new PlayerStateBaseModel { Name = x.Value }).ToList());
+            await Clients.Caller.Joined(session.Connections.Select(x => new PlayerStateBaseModel { Name = x.Value })
+                .ToList());
+            await session.Publisher.Notify(session.Connections.Count, name);
+            session.Publisher.AddSubscriber(Context.ConnectionId, new Subscriber(_gameService, Context.ConnectionId));
             await Clients.Caller.StateChange(session.GameState);
         }
 
         [HubMethodName("OnStart")]
-        public async Task OnStartAsync(TileGridBuilderOptions gridOptions)
+        public async Task OnStartAsync(TileGridBuilderOptions gridOptions, int endPoints)
         {
             var storage = Storage.GetInstance();
             var session = storage.FindSession(Context.ConnectionId) ?? throw new InvalidOperationException();
-            _gameService.Start(session.Value, gridOptions);
+            _gameService.Start(session.Value, gridOptions, endPoints);
             await Clients.Group(session.Key).StateChange(EnumGameState.Starting);
             await Clients.Group(session.Key).ReceiveGrid(session.Value.Grid.ConvertForSending());
             await Clients.Group(session.Key).ReceiveEnemies(session.Value.Enemies
@@ -101,8 +105,10 @@ namespace PacMan.Server.Hubs
             var session = Storage.GetInstance().FindSession(Context.ConnectionId) ??
                           throw new InvalidOperationException();
             session.Value.Connections[Context.ConnectionId] = playerName;
-            await Clients.Group(session.Key)
-                .Joined(session.Value.Connections.Select(x => new PlayerStateBaseModel { Name = x.Value }).ToList());
+            await session.Value.Publisher.Notify(
+                session.Value.Connections.Keys.ToList().FindIndex(x => x == Context.ConnectionId), playerName);
+            //await Clients.Group(session.Key)
+            //    .Joined(session.Value.Connections.Select(x => new PlayerStateBaseModel { Name = x.Value }).ToList());
         }
 
         [HubMethodName("OnChangeDirection")]

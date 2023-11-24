@@ -1,0 +1,79 @@
+﻿@page "/session"
+
+<PageTitle>Sessions</PageTitle>
+
+<h3>Sessions</h3>
+
+<div class="sessions">
+    @if (IsLoaded)
+    {
+        @if (SessionList.Any())
+        {
+            <table class="table table-bordered">
+                <thead>
+                <tr>
+                    <th>Session Id</th>
+                    <th>Session State</th>
+                    <th>Player count</th>
+                    <th>
+                        <button class="btn btn-primary" @onclick="async () => await RefreshSessions()">
+                            <span class="oi oi-reload" title="reload" aria-hidden="true"></span>
+                            Refresh
+                        </button>
+                    </th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var session in SessionList)
+                {
+                    <tr>
+                        <td>
+                            <h4>
+                                <span class="badge badge-primary">@session.Key</span>
+                            </h4>
+                        </td>
+                        <td>
+                            <h4>
+                                <span class="badge @GetStateClass(session.GameState)">@session.GameState.ToString()</span>
+                            </h4>
+                        </td>
+                        <td>
+                            <h4>
+                                <span class="badge badge-primary">@session.Players.Count</span>
+                            </h4>
+
+                        </td>
+                        <td>
+                                <button class="btn btn-primary" @onclick="() => OnJoin(session.Key)" disabled="@(session.GameState != EnumGameState.Initializing)">
+                                <span class="oi oi-share" title="share" aria-hidden="true"></span>
+                                Join
+                            </button>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p>No sessions found. You can create one now.</p>
+        }
+
+        <button class="btn btn-success" @onclick="OnCreate">
+            <span class="oi oi-plus" title="plus" aria-hidden="true"></span>
+            Create
+        </button>
+
+        @if (!SessionList.Any())
+        {
+            <button class="btn btn-primary ml-4" @onclick="async () => await RefreshSessions()">
+                <span class="oi oi-reload" title="reload" aria-hidden="true"></span>
+                Refresh
+            </button>
+        }
+    }
+    else
+    {
+        <p>Loading...</p>
+    }
+</div>

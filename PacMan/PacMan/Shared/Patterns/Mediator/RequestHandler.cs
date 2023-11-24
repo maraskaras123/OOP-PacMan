@@ -1,7 +1,7 @@
 ﻿using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace PacMan.Shared.Mediator
+namespace PacMan.Shared.Patterns.Mediator
 {
     public abstract class RequestHandlerBase
     {

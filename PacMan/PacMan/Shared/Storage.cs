@@ -47,7 +47,8 @@ namespace PacMan.Shared
 
         public KeyValuePair<string, GameStateModel>? FindSession(string connectionId)
         {
-            return _sessions.FirstOrDefault(x => x.Value.Connections.ContainsKey(connectionId));
+            var test = _sessions.FirstOrDefault(x => x.Value.Connections.ContainsKey(connectionId));
+            return test.Key is not null ? test : null;
         }
     }
 }
