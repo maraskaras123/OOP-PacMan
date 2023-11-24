@@ -71,7 +71,7 @@
                     @for (var j = 0; j < Grid.Width; j++)
                     {
                         // get current positions enemy, player and tile
-                        var enemyAtPosition = Enemies.FirstOrDefault(e => e.Position == new Point(j, i));
+                        var enemyAtPosition = Enemies.FirstOrDefault(e => e.Position.X == j && e.Position.Y == i);
                         var playerAtPosition = "";
                         var playerDirection = "";
                         foreach (var coordinates in PlayerCoordinates.Select(x => x.Split(',')))

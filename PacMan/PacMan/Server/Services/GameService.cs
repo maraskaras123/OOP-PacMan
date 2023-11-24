@@ -75,7 +75,9 @@ namespace PacMan.Server.Services
                     { Name = connection.Key, Direction = (EnumDirection)rnd.Next(0, 4) };
                 var coordinates = new Point(rnd.Next(session.Grid.Width), rnd.Next(session.Grid.Height));
                 while (session.Grid.Tiles[$"{coordinates.X}_{coordinates.Y}"].Type == EnumTileType.Wall)
+                {
                     coordinates = new(rnd.Next(session.Grid.Width), rnd.Next(session.Grid.Height));
+                }
 
                 stateModel.Coordinates = coordinates;
                 session.State.Add(connection.Key, stateModel);
@@ -90,7 +92,8 @@ namespace PacMan.Server.Services
                 await Task.WhenAll(Task.Delay(500), Tick(sessionId, session));
                 await _hubContext.Clients.Group(sessionId).ReceiveGrid(session.Grid.ConvertForSending());
                 await _hubContext.Clients.Group(sessionId).Tick(new(session.GameState,
-                    session.State.Select((x, index) => $"{index},{x.Value.Coordinates.X},{x.Value.Coordinates.Y},{(int)x.Value.Direction}")
+                    session.State.Select((x, index) =>
+                            $"{index},{x.Value.Coordinates.X},{x.Value.Coordinates.Y},{(int)x.Value.Direction}")
                         .ToList(),
                     session.State.Select(x => x.Value.Points).ToList()));
             }
@@ -198,7 +201,8 @@ namespace PacMan.Server.Services
             }
 
             var enemyData = session.Enemies
-                .Select(e => new EnemyModel { Position = e.Position, Character = e.Character })
+                .Select(e => new EnemyModel
+                    { Position = new() { X = e.Position.X, Y = e.Position.Y }, Character = e.Character })
                 .ToList();
             await _hubContext.Clients.Group(sessionId).ReceiveEnemies(enemyData);
             session.Ticks += 1;

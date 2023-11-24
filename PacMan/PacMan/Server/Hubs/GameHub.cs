@@ -84,7 +84,8 @@ namespace PacMan.Server.Hubs
             await Clients.Group(session.Key).StateChange(EnumGameState.Starting);
             await Clients.Group(session.Key).ReceiveGrid(session.Value.Grid.ConvertForSending());
             await Clients.Group(session.Key).ReceiveEnemies(session.Value.Enemies
-                .Select(e => new EnemyModel { Position = e.Position, Character = e.Character })
+                .Select(e => new EnemyModel
+                    { Position = new() { X = e.Position.X, Y = e.Position.Y }, Character = e.Character })
                 .ToList());
             await Task.Delay(200);
             Task.Run(() => _gameService.Init(session.Key, session.Value));
