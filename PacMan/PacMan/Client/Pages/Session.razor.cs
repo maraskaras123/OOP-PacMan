@@ -35,7 +35,7 @@ namespace PacMan.Client.Pages
         protected override async Task OnInitializedAsync()
         {
             HubConnection = new HubConnectionBuilder()
-                .WithUrl(Navigation.ToAbsoluteUri("/gamehub"))
+                .WithUrl($"{Program.ApiUrl}/gamehub")
                 .Build();
             HubConnection.On<List<PlayerStateBaseModel>>("Joined", OnJoined);
             HubConnection.On("JoinRejected", () => Navigation.NavigateTo("/session"));
