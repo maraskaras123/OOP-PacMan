@@ -19,7 +19,7 @@ namespace PacMan.Client
             builder.Services.AddScoped(sp => new HttpClient
             {
                 BaseAddress =
-                    new(builder.HostEnvironment.IsDevelopment() ? builder.HostEnvironment.BaseAddress : ApiUrl)
+                    new("https://pacman-api.arnasm.dev")
             });
             builder.Services.AddSingleton<IInputHandler, KeyboardInputHandler>();
             builder.Services.AddSingleton<InputService>();
