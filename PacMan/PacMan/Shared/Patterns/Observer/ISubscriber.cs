@@ -2,6 +2,6 @@
 {
     public interface ISubscriber
     {
-        Task Notify(bool add, string name);
+        Task Notify(int index, string name);
     }
 }

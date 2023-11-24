@@ -14,9 +14,12 @@
             Subscribers.Remove(key);
         }
 
-        public async Task Notify(bool add, string name)
+        public async Task Notify(int index, string name)
         {
-            foreach (var subscriber in Subscribers) await subscriber.Value.Notify(add, name);
+            foreach (var subscriber in Subscribers)
+            {
+                await subscriber.Value.Notify(index, name);
+            }
         }
     }
 }

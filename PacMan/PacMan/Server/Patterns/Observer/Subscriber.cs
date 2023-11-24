@@ -14,9 +14,9 @@ namespace PacMan.Server.Patterns.Observer
             _connectionId = connectionId;
         }
 
-        public async Task Notify(bool add, string name)
+        public async Task Notify(int index, string name)
         {
-            await _gameService.PlayerUpdate(_connectionId, add, name);
+            await _gameService.PlayerUpdate(_connectionId, index, name);
         }
     }
 }

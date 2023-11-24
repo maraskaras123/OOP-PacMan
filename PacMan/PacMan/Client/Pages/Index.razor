@@ -1,6 +1,5 @@
 ﻿@page "/"
 @inject NavigationManager Navigation
-@inject HttpClient HttpClient
 @implements IAsyncDisposable
 
 <PageTitle>Index</PageTitle>
@@ -8,105 +7,61 @@
 <div class="form-group">
     <label>
         User:
-        <input @bind="_userInput"/>
+        <input @bind="UserInput"/>
     </label>
 </div>
 <div class="form-group">
     <label>
         Message:
-        <input @bind="_messageInput" size="50"/>
+        <input @bind="MessageInput" size="50"/>
     </label>
 </div>
-<button @onclick="Send" disabled="@(!IsConnected)">Send</button>
-
-<hr>
-<table>
-    <thead>
-    <tr>
-        <th>Session Id</th>
-        <th>Session State</th>
-        <th>Player count</th>
-        <th></th>
-    </tr>
-    </thead>
-    <tbody>
-    @foreach (var session in _sessions)
-    {
-        <tr>
-            <td>@session.Key</td>
-            <td>@session.GameState.ToString()</td>
-            <td>@session.Players.Count</td>
-            <td>
-                <button @onclick="() => Join(session.Key)">Join</button>
-            </td>
-        </tr>
-    }
-    </tbody>
-</table>
-
-
-<button @onclick="Create">Create</button>
+<button @onclick="OnSend" disabled="@(HubConnection?.State != HubConnectionState.Connected)">Send</button>
 
 <hr/>
 
 <ul id="messagesList">
-    @foreach (var message in _messages)
+    @foreach (var message in Messages)
     {
         <li>@message</li>
     }
 </ul>
 
 @code {
-    private HubConnection? _hubConnection;
-    private readonly List<string> _messages = new();
-    private string? _userInput;
-    private string? _messageInput;
-    private List<SessionStateBaseModel> _sessions = new();
+    private HubConnection? HubConnection { get; set; }
+    private List<string> Messages { get; } = new();
+    private string? UserInput { get; set; }
+    private string? MessageInput { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        _hubConnection = new HubConnectionBuilder()
+        HubConnection = new HubConnectionBuilder()
             .WithUrl(Navigation.ToAbsoluteUri("/chathub"))
             .Build();
 
-        _hubConnection.On<string, string>("ReceiveMessage", (user, message) =>
+        HubConnection.On<string, string>("ReceiveMessage", (user, message) =>
         {
             var encodedMsg = $"{user}: {message}";
-            _messages.Add(encodedMsg);
+            Messages.Add(encodedMsg);
             StateHasChanged();
         });
 
-        await _hubConnection.StartAsync();
-
-        _sessions = await HttpClient.GetFromJsonAsync<List<SessionStateBaseModel>>("/sessions");
+        await HubConnection.StartAsync();
     }
-
-    private async Task Send()
-    {
-        if (_hubConnection is not null)
-        {
-            await _hubConnection.SendAsync("SendMessageToAll", _userInput, _messageInput);
-        }
-    }
-
-    private void Join(string key)
-    {
-        Navigation.NavigateTo($"/session/{key}");
-    }
-
-    private async Task Create()
-    {
-        var key = await (await HttpClient.PostAsync("/sessions", null)).Content.ReadAsStringAsync();
-        Navigation.NavigateTo($"/session/{key}");
-    }
-
-    public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
 
     public async ValueTask DisposeAsync()
     {
-        if (_hubConnection is not null)
+        if (HubConnection is not null)
         {
-            await _hubConnection.DisposeAsync();
+            await HubConnection.DisposeAsync();
+        }
+    }
+
+    private async Task OnSend()
+    {
+        if (HubConnection is not null)
+        {
+            await HubConnection.SendAsync("SendMessageToAll", UserInput, MessageInput);
         }
     }
 

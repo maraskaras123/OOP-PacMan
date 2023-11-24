@@ -12,7 +12,7 @@ namespace PacMan.Server.Services
         void Reset(GameStateModel session);
         void Start(GameStateModel session, TileGridBuilderOptions gridOptions, int endPoints);
         Task Init(string sessionId, GameStateModel session);
-        Task PlayerUpdate(string connectionId, bool add, string name);
+        Task PlayerUpdate(string connectionId, int index, string name);
     }
 
     public class GameService : IGameService
@@ -90,15 +90,15 @@ namespace PacMan.Server.Services
                 await Task.WhenAll(Task.Delay(500), Tick(sessionId, session));
                 await _hubContext.Clients.Group(sessionId).ReceiveGrid(session.Grid.ConvertForSending());
                 await _hubContext.Clients.Group(sessionId).Tick(new(session.GameState,
-                    session.State.Select((x, index) => $"{index},{x.Value.Coordinates.X},{x.Value.Coordinates.Y}")
+                    session.State.Select((x, index) => $"{index},{x.Value.Coordinates.X},{x.Value.Coordinates.Y},{(int)x.Value.Direction}")
                         .ToList(),
                     session.State.Select(x => x.Value.Points).ToList()));
             }
         }
 
-        public async Task PlayerUpdate(string connectionId, bool add, string name)
+        public async Task PlayerUpdate(string connectionId, int index, string name)
         {
-            await _hubContext.Clients.Client(connectionId).PlayerUpdate(add, name);
+            await _hubContext.Clients.Client(connectionId).PlayerUpdate(index, name);
         }
 
         private void TouchingEnemy(GameStateModel session, PlayerStateModel state)
@@ -114,7 +114,10 @@ namespace PacMan.Server.Services
         private async Task Tick(string sessionId, GameStateModel session)
         {
             await _hubContext.Clients.Group(sessionId).ReceiveGrid(session.Grid.ConvertForSending());
-            foreach (var enemy in session.Enemies) enemy.Move(session);
+            foreach (var enemy in session.Enemies)
+            {
+                enemy.Move(session);
+            }
 
             foreach (var state in session.State)
             {
@@ -188,7 +191,10 @@ namespace PacMan.Server.Services
 
                 TouchingEnemy(session, state.Value);
 
-                if (state.Value.Points >= _endPoints) session.GameState = EnumGameState.Finished;
+                if (state.Value.Points >= _endPoints)
+                {
+                    session.GameState = EnumGameState.Finished;
+                }
             }
 
             var enemyData = session.Enemies
