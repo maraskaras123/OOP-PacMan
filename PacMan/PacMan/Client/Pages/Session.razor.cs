@@ -162,7 +162,7 @@ namespace PacMan.Client.Pages
             StateHasChanged();
         }
 
-        private async Task Restart()
+        private async Task OnRestart()
         {
             if (HubConnection is not null)
             {

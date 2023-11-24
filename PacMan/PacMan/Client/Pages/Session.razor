@@ -40,7 +40,7 @@
             <div class="card-body">
                 @if (Players.FirstOrDefault()?.Name == CurrentPlayerName)
                 {
-                    <button class="btn btn-primary mr-4" @onclick="async () => await Restart()">
+                    <button class="btn btn-primary mr-4" @onclick="async () => await OnRestart()">
                         <span class="oi oi-reload" title="reload" aria-hidden="true"></span>
                         Restart
                     </button>
