@@ -121,6 +121,7 @@ namespace PacMan.Server.Services
             {
                 enemy.Move(session);
             }
+            
 
             foreach (var state in session.State)
             {

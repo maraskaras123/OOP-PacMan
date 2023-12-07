@@ -3,11 +3,10 @@ using System.Drawing;
 
 namespace PacMan.Shared.Models
 {
-    public class RedGhost : IEnemy
+    public class RedGhost : GhostBase
     {
-        public char Character => 'R';
-        public Point Position { get; set; }
         private int _ticksSinceLastDirectionChange;
+        private int _ticksTillDirectionChange = 4;
         private Point _currentDirection = Directions[0]; // Default to right
 
         private static readonly List<Point> Directions = new()
@@ -18,11 +17,25 @@ namespace PacMan.Shared.Models
             new(0, -1) // Up
         };
 
-        public void Move(GameStateModel session)
+        public RedGhost() : base('R', 1) { }
+
+
+        private Point ChooseRandomDirection()
+        {
+            var rand = new Random();
+            return Directions[rand.Next(Directions.Count)];
+        }
+
+        protected override Point FindPlayer(Dictionary<string, PlayerStateModel> playerStates)// this ghost doesnt need to find the possition of an enemy
+        {
+            return Point.Empty;
+        }
+
+        protected override Point MovePattern(GameStateModel session, Point start, Point end)
         {
             _ticksSinceLastDirectionChange++;
 
-            if (_ticksSinceLastDirectionChange >= 4)
+            if (_ticksSinceLastDirectionChange >= _ticksTillDirectionChange)
             {
                 _currentDirection = ChooseRandomDirection();
                 _ticksSinceLastDirectionChange = 0;
@@ -30,58 +43,17 @@ namespace PacMan.Shared.Models
 
             var nextPosition = new Point(Position.X + _currentDirection.X, Position.Y + _currentDirection.Y);
 
-            // Assuming Storage.Walls is accessible from this scope
             // Sorry i changed it up, maybe i should revert back to points
             if (session.Grid.GetTile(nextPosition.X, nextPosition.Y).Type != EnumTileType.Wall &&
                 CanMoveTo(session, nextPosition))
             {
-                Position = nextPosition;
+                return nextPosition;
             }
             else
             {
                 _currentDirection = ChooseRandomDirection();
             }
-        }
-
-        private bool CanMoveTo(GameStateModel session, Point nextPosition)
-        {
-            
-            foreach( var enemy in session.Enemies)
-            {
-                if(nextPosition == enemy.Position)
-                {
-                    return false;
-                }
-            }
-
-            // Check if the next position is a wall
-            return session.Grid.GetTile(nextPosition.X, nextPosition.Y).Type != EnumTileType.Wall;
-        }
-
-        private static Point ChooseRandomDirection()
-        {
-            var rand = new Random();
-            return Directions[rand.Next(Directions.Count)];
-        }
-
-        public void Respawn(GameStateModel session)
-        {
-            var rand = new Random();
-            bool spawned = false;
-            while(!spawned)
-            {
-                Point point = new Point(rand.Next(session.Grid.Width), rand.Next(session.Grid.Height));
-                foreach(var enemy in session.Enemies)
-                {
-                    if(point == enemy.Position || session.Grid.GetTile(point.X, point.Y).Type == EnumTileType.Wall)
-                    {
-                        break;
-                    }
-                    Position = point;
-                    spawned = true;
-                    break;
-                }
-            }
+            return Position;
         }
     }
 }
