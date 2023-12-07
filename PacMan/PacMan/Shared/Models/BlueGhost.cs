@@ -3,33 +3,12 @@ using PacMan.Shared.Enums;
 
 namespace PacMan.Shared.Models
 {
-    public class BlueGhost : IEnemy
+    public class BlueGhost : GhostBase
     {
-        public Point Position { get; set; }
-        public char Character => 'B';
+        public BlueGhost() : base( 'B', 2)
+        {}
 
-        private const int TicksPerMove = 2;
-
-        private int _moveTicks = 1;
-
-        public void Move(GameStateModel session)
-        {
-            _moveTicks--;
-            if (_moveTicks == 0)
-            {
-                var nearestPlayer = FindNearestPlayer(session.State);
-                var path = AStar(session, Position, nearestPlayer.Coordinates);
-
-                if (path is { Count: > 1 })
-                {
-                    Position = path[1]; // Move to the next step in the path
-                }
-
-                _moveTicks = TicksPerMove;
-            }
-        }
-
-        private PlayerStateModel FindNearestPlayer(Dictionary<string, PlayerStateModel> playerStates)
+        protected override Point FindPlayer(Dictionary<string, PlayerStateModel> playerStates) //finds neaest player
         {
             var minDistance = double.MaxValue;
             PlayerStateModel? nearestPlayer = null;
@@ -45,12 +24,16 @@ namespace PacMan.Shared.Models
                     nearestPlayer = playerState;
                 }
             }
-
-            return nearestPlayer ?? throw new NullReferenceException();
+            if(nearestPlayer != null)
+            {
+                return nearestPlayer.Coordinates;
+            }
+            return Point.Empty;
         }
 
-        private static List<Point> AStar(GameStateModel session, Point start, Point end)
+        protected override Point MovePattern(GameStateModel session, Point start, Point end)
         {
+            
             var openList = new List<Node>();
             var closedList = new List<Node>();
 
@@ -70,7 +53,7 @@ namespace PacMan.Shared.Models
                     }
 
                     path.Reverse();
-                    return path.ToList();
+                    return path.ToList()[1];
                 }
 
                 openList.Remove(currentNode);
@@ -80,7 +63,8 @@ namespace PacMan.Shared.Models
                 {
                     // I'm assuming Storage.Walls is accessible from this scope
                     // Sorry i changed it up, maybe i should revert back to points
-                    if (session.Grid.GetTile(neighborPos.X, neighborPos.Y).Type == Enums.EnumTileType.Wall || IsOcupiedByEnemy(session, neighborPos))
+                    Console.WriteLine(CanMoveTo(session, neighborPos));
+                    if (!CanMoveTo(session, neighborPos))
                     {
                         continue;
                     }
@@ -104,20 +88,7 @@ namespace PacMan.Shared.Models
                     }
                 }
             }
-
-            return new(); // No path could be found
-        }
-
-        private static bool IsOcupiedByEnemy(GameStateModel session, Point point)
-        {
-            foreach (var enemy in session.Enemies)
-            {
-                if (point == enemy.Position)
-                {
-                    return true;
-                }
-            }
-            return false;
+            return Position;
         }
 
         private static IEnumerable<Point> GetNeighbors(Point current)
@@ -128,25 +99,6 @@ namespace PacMan.Shared.Models
             yield return new(current.X, current.Y + 1);
         }
 
-        public void Respawn(GameStateModel session)
-        {
-            var rand = new Random();
-            bool spawned = false;
-            while (!spawned)
-            {
-                Point point = new Point(rand.Next(session.Grid.Width), rand.Next(session.Grid.Height));
-                foreach (var enemy in session.Enemies)
-                {
-                    if (point == enemy.Position || session.Grid.GetTile(point.X, point.Y).Type == EnumTileType.Wall)
-                    {
-                        break;
-                    }
-                    Position = point;
-                    spawned = true;
-                    break;
-                }
-            }
-        }
 
         private class Node
         {
