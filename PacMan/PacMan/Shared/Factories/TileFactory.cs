@@ -10,5 +10,9 @@ namespace PacMan.Shared.Factories
         {
             return new EmptyTile();
         }
+        public virtual Tile ConvertToMegaPellet()
+        {
+            return new MegaPelletTile();
+        }
     }
 }
