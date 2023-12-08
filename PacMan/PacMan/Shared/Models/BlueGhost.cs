@@ -61,9 +61,7 @@ namespace PacMan.Shared.Models
 
                 foreach (var neighborPos in GetNeighbors(currentNode.Position))
                 {
-                    // I'm assuming Storage.Walls is accessible from this scope
                     // Sorry i changed it up, maybe i should revert back to points
-                    Console.WriteLine(CanMoveTo(session, neighborPos));
                     if (!CanMoveTo(session, neighborPos))
                     {
                         continue;
