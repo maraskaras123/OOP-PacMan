@@ -1,6 +1,8 @@
+using PacMan.Shared.Patterns.Iterator;
+
 namespace PacMan.Shared.Models
 {
-    public class TileGrid
+    public class TileGrid : IteratorAggregate
     {
         public int Width { get; set; }
         public int Height { get; set; }
@@ -60,6 +62,11 @@ namespace PacMan.Shared.Models
             clone.Tiles = new(Tiles);
 
             return clone;
+        }
+
+        public override System.Collections.IEnumerator GetEnumerator()
+        {
+            return new TileGridIterator(this);
         }
     }
 }
