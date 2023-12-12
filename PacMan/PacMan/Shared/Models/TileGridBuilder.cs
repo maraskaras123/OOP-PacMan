@@ -27,6 +27,11 @@ namespace PacMan.Shared.Models
         {
             _pelletsFactory = new PelletTileFactory();
             _wallsFactory = new WallTileFactory();
+            
+            // increase width and height to account for outer border of walls
+            _width += 2;
+            _height += 2;
+
             Tiles = new();
             for (int i = 0; i < _width; i++)
             {
@@ -44,8 +49,8 @@ namespace PacMan.Shared.Models
             var rnd = new Random();
             for (var i = 0; i < tiles; i++)
             {
-                var r1 = rnd.Next(0, _height);
-                var r2 = rnd.Next(0, _width);
+                var r1 = rnd.Next(0, _width);
+                var r2 = rnd.Next(0, _height);
                 var tile = GetTile(r1, r2);
                 if (tile is not { Type: EnumTileType.Wall })
                 {

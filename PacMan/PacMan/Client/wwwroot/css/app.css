@@ -93,7 +93,9 @@ a, .btn-link { color: #0071c1; }
     /* Adjust cell height as needed */
 }
 
-.wall { background-color: cornflowerblue; }
+.wall {
+    background-color: cornflowerblue;
+}
 
 .pellet {
     border-radius: 50%;
