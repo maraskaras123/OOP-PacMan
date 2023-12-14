@@ -2,6 +2,7 @@
 using PacMan.Shared.Enums;
 using PacMan.Shared.Factories;
 using PacMan.Shared.Models;
+using PacMan.Shared.Patterns.Memento;
 using System;
 using System.Net.Http.Json;
 using System.Text;
@@ -28,6 +29,8 @@ namespace PacMan.Client.Pages
 
         EnumTileType currentBrush = EnumTileType.Wall;
 
+        Caretaker caretaker = new Caretaker(new TileGrid());
+
         string test = "";
 
         private void SetGridOptions()
@@ -38,8 +41,9 @@ namespace PacMan.Client.Pages
                 .WithRandomTiles(0);
             Grid = builder.Build();
             
-            GridOptionsSelected = true;
+            caretaker = new Caretaker(Grid);
 
+            GridOptionsSelected = true;
         }
 
         private void SetBrush(EnumTileType brush)
@@ -60,9 +64,6 @@ namespace PacMan.Client.Pages
                         case EnumTileType.Wall:
                             Tile = _wallsFactory.CreateTile();
                             break;
-                        case EnumTileType.Empty:
-                            Tile = _emptyFactory.CreateTile();
-                            break;
                         case EnumTileType.Pellet:
                             Tile = _pelletFactory.CreateTile();
                             break;
@@ -78,13 +79,22 @@ namespace PacMan.Client.Pages
                 }
             }            
         }
+
         private void StartPainting()
         {
+            caretaker.Backup();
             isPainting = true;
         }
+
         private void StopPainting()
         {
-            isPainting = false;
+            isPainting = false;            
+        }
+
+        private void Undo()
+        {
+            caretaker.Undo();
+            StateHasChanged();
         }
 
         private string ConvertToJson()

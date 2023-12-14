@@ -34,8 +34,9 @@ else
     </div>
     <ul>
         <li>Currently painting: @isPainting</li>
-        <li>@test</li>
+        <li>@Grid.GetTile(1,1)</li>
     </ul>
+    <button @onclick="() => Undo()">undo</button>
     <div draggable="false">
         <table class="game-grid" @onmouseup="() => StopPainting()"  draggable="false">
             @for (var i = 0; i < Grid.Height; i++)
