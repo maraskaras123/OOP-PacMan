@@ -8,7 +8,9 @@ namespace PacMan.Shared.Models
         public EnumDirection Direction { get; set; }
         public Point Coordinates { get; set; }
         public int Points { get; set; }
-        private int _ticksTillNormalState = 0;
+
+        
+        public int TicksTillMove = 1;
         private IPacmanState _currentState;
 
         public PlayerStateModel()
@@ -16,23 +18,6 @@ namespace PacMan.Shared.Models
             Direction = EnumDirection.Right;
             Coordinates = new(0, 0);
             _currentState = new NormalPacmanState(this);
-        }
-
-        public void TickToNormalState()
-        {
-            if(_ticksTillNormalState!=0)
-            {
-                _ticksTillNormalState--;
-                if(_ticksTillNormalState == 0)
-                {
-                    _currentState = new NormalPacmanState(this);
-                }
-            }
-        }
-
-        public void SetToNormalTick(int ticks)
-        {
-            _ticksTillNormalState = ticks;
         }
 
         public PlayerStateModel(Point point)
@@ -65,6 +50,38 @@ namespace PacMan.Shared.Models
         public void SetState(IPacmanState state)
         {
             _currentState = state;
+        }
+        public void Tick()
+        {
+            _currentState.Tick();
+            
+        }
+        public bool CanMove()
+        {
+            return _currentState.CanMove();
+        }
+        public Type GetState()
+        {
+            return _currentState.GetType();
+        }
+        public void AddPoison(IPoison poison)
+        {
+            if(_currentState.GetType() != typeof(PoisonedPacmanState))
+            {
+                SetState(new PoisonedPacmanState(this));
+            }
+            ((PoisonedPacmanState)_currentState).AddPoison(poison, (PoisonedPacmanState)_currentState);
+        }
+        public void RemovePoison(Type poison)
+        {
+            if(_currentState.GetType() == typeof(PoisonedPacmanState))
+            {
+                ((PoisonedPacmanState)_currentState).RemoveEffect((PoisonedPacmanState)_currentState, poison);
+            }
+        }
+        public bool CanEat()
+        {
+            return _currentState.CanEat();
         }
     }
 }

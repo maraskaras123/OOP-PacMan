@@ -5,6 +5,14 @@
         Empty,
         Pellet,
         MegaPellet,
+        PointsPoison,
+        PointsPoisonAntidote,
+        FoodPoison,
+        FoodPoisonAntidote,
+        ImobilePoison,
+        SlowPoison,
+        SlowPoisonAntidote,
+        AllCureTile,
         Wall
     }
 }
