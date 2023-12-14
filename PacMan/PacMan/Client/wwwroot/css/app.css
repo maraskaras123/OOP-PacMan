@@ -114,6 +114,74 @@ a, .btn-link { color: #0071c1; }
     display: flex;
     align-items: center;
 }
+.ImobilizePoison {
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 20px solid rgb(124, 2, 140);
+    display: flex;
+    align-items: center;
+}
+.SlowPoison {
+    width: 20px; /* Set the width of the square */
+    height: 20px; /* Set the height of the square */
+    background-color: rgb(4, 2, 140); /* Background color of the square */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.SlowPoisonAntidote {
+    width: 20px; /* Set the width of the square */
+    height: 20px; /* Set the height of the square */
+    background-color: rgb(255, 255, 255); /* Background color of the square */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.FoodPoison {
+    width: 0;
+    height: 0;
+    border: 10px solid transparent;
+    border-bottom: 10px solid rgb(124, 2, 140);
+    position: relative;
+}
+.AllCure {
+    width: 0;
+    height: 0;
+    border: 10px solid transparent;
+    border-bottom: 10px solid rgb(0, 255, 247);
+    position: relative;
+}
+
+.FoodPoison::after {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: -10px;
+    width: 0;
+    height: 0;
+    border: 10px solid transparent;
+    border-top: 10px solid rgb(124, 2, 140);
+}
+.FoodPoisonAntidote {
+    width: 0;
+    height: 0;
+    border: 10px solid transparent;
+    border-bottom: 10px solid rgb(255, 255, 255);
+    position: relative;
+}
+
+.FoodPoisonAntidote::after {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: -10px;
+    width: 0;
+    height: 0;
+    border: 10px solid transparent;
+    border-top: 10px solid rgb(255, 255, 255);
+}
 
 .game-grid {
     border: 1px solid #000;
