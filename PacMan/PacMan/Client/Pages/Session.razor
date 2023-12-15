@@ -57,15 +57,21 @@
 
     @if (GameState == EnumGameState.Running)
     {
-        <div class="scoreboard">
-            @foreach (var playerScore in PlayerInfo)
+        <div class="scorecontainer">
+    <div class="scoreboard">
+         @foreach (var playerScore in PlayerInfo)
             {
                 <p>@(new MarkupString(GetPacmanColorByPlayer(playerScore.PlayerId))) @(playerScore.PlayerName):
                     @playerScore.Points points</p>
             }
-        </div>
+    </div>
+</div>
+
         <br />
 
+
+        <div class="container">
+            <div class="gridbox">
         <table class="game-grid">
             @for (var i = 0; i < Grid.Height; i++)
             {
@@ -129,16 +135,16 @@
                                     @(new MarkupString("<td class='grid-cell'><center><div class='SlowPoisonAntidote'></center></div></td>"))
                                     break;
                                 case EnumTileType.FoodPoison:
-                                    @(new MarkupString("<td class='grid-cell'><center><div class='SlowPoison'></center></div></td>"))
+                                    @(new MarkupString("<td class='grid-cell'><center><div class='FoodPoison'></center></div></td>"))
                                     break;
                                 case EnumTileType.FoodPoisonAntidote:
-                                    @(new MarkupString("<td class='grid-cell'><center><div class='SlowPoisonAntidote'></center></div></td>"))
+                                    @(new MarkupString("<td class='grid-cell'><center><div class='FoodPoisonAntidote'></center></div></td>"))
                                     break;
                                 case EnumTileType.PointsPoison:
-                                    @(new MarkupString("<td class='grid-cell'><center><div class='SlowPoison'></center></div></td>"))
+                                    @(new MarkupString("<td class='grid-cell'><center><div class='PointsPoison'></center></div></td>"))
                                     break;
                                 case EnumTileType.PointsPoisonAntidote:
-                                    @(new MarkupString("<td class='grid-cell'><center><div class='SlowPoisonAntidote'></center></div></td>"))
+                                    @(new MarkupString("<td class='grid-cell'><center><div class='PointsPoisonAntidote'></center></div></td>"))
                                     break;
                                 case EnumTileType.AllCureTile:
                                     @(new MarkupString("<td class='grid-cell'><center><div class='AllCure'></center></div></td>"))
@@ -152,6 +158,26 @@
                 </tr>
             }
         </table>
+        </div>
+        <div class="poison-legend">
+            <div>
+                <div class="ImobilizePoison"></div>
+                <span>Immobile Poison</span>
+            </div>
+            <div>
+                <div class="SlowPoison"></div>
+                <span>Slow Poison</span>
+            </div>
+            <div>
+                <div class="FoodPoison"></div>
+                <span>Food Poison</span>
+            </div>
+            <div>
+                <div class="PointsPoison"></div>
+                <span>Points Poison</span>
+            </div>
+        </div>
+        </div>
 
         @if (SelectedInputMethod == EnumInputMethod.Buttons)
         {
