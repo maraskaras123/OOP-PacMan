@@ -3,6 +3,7 @@ using PacMan.Server.Hubs;
 using PacMan.Shared.Enums;
 using PacMan.Shared.Factories;
 using PacMan.Shared.Models;
+using PacMan.Shared.Patterns.Visitor;
 using System.Drawing;
 
 namespace PacMan.Server.Services
@@ -191,56 +192,11 @@ namespace PacMan.Server.Services
                 }
                 if (state.Value.CanMove())
                 {
-                    switch (session.Grid.GetTile(desiredX, desiredY).Type)
-                    {
-                        case EnumTileType.Wall:
-                            break;
-                        case EnumTileType.Pellet:
-                            Eat(session, desiredX, desiredY, state.Value);
-                            state.Value.EatPellet();
-                            goto case EnumTileType.Empty;
-                        case EnumTileType.MegaPellet:
-                            if (Eat(session, desiredX, desiredY, state.Value))
-                            {
-                                state.Value.SetState(new SuperPacmanState(state.Value, 12));
-                            }
-                            goto case EnumTileType.Empty;
-                        case EnumTileType.Empty:
-                            state.Value.Coordinates = new(desiredX, desiredY);
-                            break;
-                        case EnumTileType.ImobilePoison:
-                            session.Grid.ChangeTile(_emptyTileFactory.ConvertToEmpty(), desiredX, desiredY);
-                            HandlePoison(new ImobilePoison(), state.Value);
-                            goto case EnumTileType.Empty;
-                        case EnumTileType.SlowPoison:
-                            session.Grid.ChangeTile(_emptyTileFactory.ConvertToEmpty(), desiredX, desiredY);
-                            HandlePoison(new SlowPoison(), state.Value);
-                            goto case EnumTileType.Empty;
-                        case EnumTileType.FoodPoison:
-                            session.Grid.ChangeTile(_emptyTileFactory.ConvertToEmpty(), desiredX, desiredY);
-                            HandlePoison(new FoodPoison(), state.Value);
-                            goto case EnumTileType.Empty;
-                        case EnumTileType.PointsPoison:
-                            session.Grid.ChangeTile(_emptyTileFactory.ConvertToEmpty(), desiredX, desiredY);
-                            HandlePoison(new PointsPoison(), state.Value);
-                            goto case EnumTileType.Empty;
-                        case EnumTileType.PointsPoisonAntidote:
-                            session.Grid.ChangeTile(_emptyTileFactory.ConvertToEmpty(), desiredX, desiredY);
-                            state.Value.RemovePoison(typeof(PointsPoison));
-                            goto case EnumTileType.Empty;
-                        case EnumTileType.SlowPoisonAntidote:
-                            session.Grid.ChangeTile(_emptyTileFactory.ConvertToEmpty(), desiredX, desiredY);
-                            state.Value.RemovePoison(typeof(SlowPoison));
-                            goto case EnumTileType.Empty;
-                        case EnumTileType.FoodPoisonAntidote:
-                            session.Grid.ChangeTile(_emptyTileFactory.ConvertToEmpty(), desiredX, desiredY);
-                            state.Value.RemovePoison(typeof(FoodPoison));
-                            goto case EnumTileType.Empty;
-                        case EnumTileType.AllCureTile:
-                            session.Grid.ChangeTile(_emptyTileFactory.ConvertToEmpty(), desiredX, desiredY);
-                            state.Value.SetState(new NormalPacmanState(state.Value));
-                            goto case EnumTileType.Empty;
-                    }
+                    TileVisitor visitor = new TileVisitor(desiredX, desiredY, state.Value, session);
+
+                    var desiredTile = session.Grid.GetTile(desiredX, desiredY);
+
+                    desiredTile.AcceptVisitor(visitor);
                 }
 
                 TouchingEnemy(session, state.Value);
@@ -257,11 +213,11 @@ namespace PacMan.Server.Services
                 { Position = new() { X = e.Position.X, Y = e.Position.Y }, Character = e.Character })
                 .ToList();
             await _hubContext.Clients.Group(sessionId).ReceiveEnemies(enemyData);
-            SpawnPowerUp(session, _pointsPoisonFactory);
-            SpawnPowerUp(session, _foodPoisonFactory);
-            SpawnPowerUp(session, _slowPoisonFactory);
-            SpawnPowerUp(session, _imobilizePoisonFactory);
-            SpawnPowerUp(session, _allCureTileFactory);
+            SpawnPowerUp(session, _pointsPoisonFactory, 40);
+            SpawnPowerUp(session, _foodPoisonFactory, 40);
+            SpawnPowerUp(session, _slowPoisonFactory, 40);
+            SpawnPowerUp(session, _imobilizePoisonFactory, 40);
+            SpawnPowerUp(session, _allCureTileFactory, 20);
             session.Ticks += 1;
         }
 
@@ -276,9 +232,9 @@ namespace PacMan.Server.Services
         }
 
 
-        private void SpawnPowerUp(GameStateModel session, TileFactory tileFactory)
+        private void SpawnPowerUp(GameStateModel session, TileFactory tileFactory, int ticks)
         {
-            if (session.Ticks % 1 == 0)
+            if (session.Ticks % ticks == 0)
             {
                 var rnd = new Random();
                 bool placed = false;
