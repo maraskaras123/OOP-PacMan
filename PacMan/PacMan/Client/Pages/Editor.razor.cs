@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using PacMan.Shared.Enums;
 using PacMan.Shared.Factories;
 using PacMan.Shared.Models;
@@ -80,10 +81,11 @@ namespace PacMan.Client.Pages
             }            
         }
 
-        private void StartPainting()
-        {
+        private bool StartPainting()
+        {         
             caretaker.Backup();
             isPainting = true;
+            return false;
         }
 
         private void StopPainting()
@@ -94,6 +96,15 @@ namespace PacMan.Client.Pages
         private void Undo()
         {
             caretaker.Undo();
+            StateHasChanged();
+        }
+
+        private void SetEmptyToPellet()
+        {
+            foreach (Tile tile in Grid)
+            {
+                tile.Type = EnumTileType.Pellet;
+            }
             StateHasChanged();
         }
 

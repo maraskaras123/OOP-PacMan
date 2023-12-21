@@ -221,16 +221,6 @@ namespace PacMan.Server.Services
             session.Ticks += 1;
         }
 
-        private bool Eat(GameStateModel session, int desiredX, int desiredY, PlayerStateModel player)
-        {
-            if (player.CanEat())
-            {
-                session.Grid.ChangeTile(_emptyTileFactory.ConvertToEmpty(), desiredX, desiredY);
-                return true;
-            }
-            return false;
-        }
-
 
         private void SpawnPowerUp(GameStateModel session, TileFactory tileFactory, int ticks)
         {

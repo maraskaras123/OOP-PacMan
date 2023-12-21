@@ -37,6 +37,7 @@ else
         <li>@test</li>
     </ul>
     <button @onclick="() => Undo()">undo</button>
+    <button @onclick="() => SetEmptyToPellet()">Set empty tiles to pellet tiles</button>
     <div draggable="false">
         <table class="game-grid" @onmouseup="() => StopPainting()"  draggable="false">
             @for (var i = 0; i < Grid.Height; i++)
@@ -72,7 +73,7 @@ else
                         <td class="@_class" draggable="false"
                             @onmousedown="() => StartPainting()"
                             @onmousemove="() => HandlePainting(row, col)">
-                            @if(tile.Type != EnumTileType.Wall) { <center><div class='@_content' draggable="false"></div></center>}
+                            @if(tile.Type != EnumTileType.Wall) { <center><div class='@_content unselectable' draggable="false"></div></center>}
                         </td>
 
                     }
