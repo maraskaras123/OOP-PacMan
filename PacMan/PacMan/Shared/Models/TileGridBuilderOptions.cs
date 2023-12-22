@@ -9,6 +9,7 @@
         public int Height { get; set; }
         public string TileAlgorithm { get; set; } // might make this an Enum later
         public int RandomTileCount { get; set; }
+        public int? SelectedGridId { get; set; }
 
         public TileGridBuilderOptions()
         {

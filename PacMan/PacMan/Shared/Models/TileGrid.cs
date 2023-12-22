@@ -68,11 +68,12 @@ namespace PacMan.Shared.Models
 
         public IMemento Save()
         {
-            Dictionary<string, Tile> newTiles = new Dictionary<string, Tile>();
+            var newTiles = new Dictionary<string, Tile>();
             foreach (var tile in Tiles)
             {
                 newTiles[tile.Key] = tile.Value;
             }
+
             return new TileGridMemento(newTiles);
         }
 
@@ -80,10 +81,10 @@ namespace PacMan.Shared.Models
         {
             if (!(memento is TileGridMemento))
             {
-                throw new Exception("Unknown memento class " + memento.ToString());
+                throw new("Unknown memento class " + memento.ToString());
             }
 
-            this.Tiles = memento.GetState();
+            Tiles = memento.GetState();
         }
 
         public override IEnumerator GetEnumerator()

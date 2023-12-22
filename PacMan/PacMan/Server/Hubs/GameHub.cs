@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using PacMan.Server.DbSchema;
 using PacMan.Server.Patterns.Observer;
 using PacMan.Server.Services;
 using PacMan.Shared;

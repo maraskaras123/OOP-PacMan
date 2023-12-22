@@ -6,6 +6,7 @@ using PacMan.Shared.Enums;
 using PacMan.Shared.Models;
 using PacMan.Shared.Patterns.Flyweight;
 using System.Drawing;
+using System.Net.Http.Json;
 
 namespace PacMan.Client.Pages
 {
@@ -19,18 +20,23 @@ namespace PacMan.Client.Pages
 
         public HubConnection? HubConnection { get; set; }
         public EnumInputMethod SelectedInputMethod { get; set; } = EnumInputMethod.Keyboard;
+        public int? SelectedGridId { get; set; }
         public TileGridBuilderOptions GridOptions { get; } = new();
         public List<PlayerStateBaseModel> Players { get; set; } = new();
         public int EndPoints { get; set; } = 100;
         public string PlayerName { get; set; }
         public string CurrentPlayerName { get; set; }
         public TileRendererFactory TileRendererFactory { get; set; } = new();
+        public List<EditorGridModel> PreMadeGrids { get; set; } = new();
 
         [Parameter]
         public string SessionId { get; set; }
 
         [Inject]
         public NavigationManager Navigation { get; set; }
+
+        [Inject]
+        public HttpClient HttpClient { get; set; }
 
         #region ComponentMethods
 
@@ -54,6 +60,7 @@ namespace PacMan.Client.Pages
             {
                 await HubConnection.StartAsync();
                 await HubConnection.InvokeAsync("JoinSession", SessionId, PlayerName);
+                PreMadeGrids = await HttpClient.GetFromJsonAsync<List<EditorGridModel>>("/grids") ?? new();
             }
             catch (Exception ex)
             {

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using System.Net.Http.Json;
+using Microsoft.AspNetCore.Components;
 using PacMan.Shared.Enums;
 using PacMan.Shared.Factories;
 using PacMan.Shared.Models;
@@ -21,6 +22,7 @@ namespace PacMan.Client.Pages
 
         private TileGridBuilderOptions GridOptions = new();
         private TileGrid Grid = new();
+        private string GridName { get; set; } = string.Empty;
 
         private readonly TileFactoryProxy<PelletTileFactory> _pelletFactory = new();
         private readonly TileFactoryProxy<WallTileFactory> _wallsFactory = new();
@@ -152,6 +154,12 @@ namespace PacMan.Client.Pages
 
         private async Task UploadGrid()
         {
+            if (GridName.Length == 0)
+            {
+                Error = "Please enter a name for the grid";
+                return;
+            }
+
             var validator = new TileGridValidator();
             var result = validator.Validate(Grid);
             if (result.Length > 0)
@@ -159,8 +167,12 @@ namespace PacMan.Client.Pages
                 Error = result;
                 return;
             }
-            // sorry boss nezinau whata doin
-            //
+
+            await HttpClient.PostAsJsonAsync("/grids", new EditorGridModel
+            {
+                Name = GridName,
+                GridJson = ConvertToJson()
+            });
         }
     }
 }

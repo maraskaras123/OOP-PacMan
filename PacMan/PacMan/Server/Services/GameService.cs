@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using PacMan.Server.DbSchema;
 using PacMan.Server.Hubs;
 using PacMan.Shared.Enums;
 using PacMan.Shared.Factories;
 using PacMan.Shared.Models;
 using PacMan.Shared.Patterns.Visitor;
 using System.Drawing;
+using System.Text.Json;
 
 namespace PacMan.Server.Services
 {
@@ -19,6 +21,8 @@ namespace PacMan.Server.Services
     public class GameService : IGameService
     {
         private readonly IHubContext<GameHub, IGameHubClient> _hubContext;
+        private readonly ApplicationDbContext _dbContext;
+
         private readonly EnemyFactory _redGhostFactory;
         private readonly EnemyFactory _blueGhostFactory;
         private readonly TileFactory _emptyTileFactory;
@@ -36,7 +40,7 @@ namespace PacMan.Server.Services
 
         private int _endPoints;
 
-        public GameService(IHubContext<GameHub, IGameHubClient> hubContext)
+        public GameService(IHubContext<GameHub, IGameHubClient> hubContext, ApplicationDbContext dbContext)
         {
             _redGhostFactory = new RedGhostFactory();
             _blueGhostFactory = new BlueGhostFactory();
@@ -51,6 +55,7 @@ namespace PacMan.Server.Services
             _pointsPoisonAntidoteFactory = new PointPoisonAntidoteFactory();
             _allCureTileFactory = new AllCureTileFactory();
             _hubContext = hubContext;
+            _dbContext = dbContext;
             _endPoints = 100;
         }
 
@@ -67,7 +72,10 @@ namespace PacMan.Server.Services
         {
             CreateEnemies(session);
             session.GameState = EnumGameState.Starting;
-            var grid = new TileGridBuilder()
+            var gridJson = gridOptions.SelectedGridId is not null
+                ? _dbContext.Grids.Find(gridOptions.SelectedGridId)?.GridJson
+                : null;
+            var grid = gridJson is not null ? JsonSerializer.Deserialize<TileGrid>(gridJson) : new TileGridBuilder()
                 .WithWidth(gridOptions.Width)
                 .WithHeight(gridOptions.Height)
                 .WithRandomTiles(gridOptions.RandomTileCount)
