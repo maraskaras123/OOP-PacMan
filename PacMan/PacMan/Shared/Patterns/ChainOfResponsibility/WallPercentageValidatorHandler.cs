@@ -17,7 +17,7 @@ namespace PacMan.Shared.Patterns.ChainOfResponsibility
         public string Validate(TileGrid grid)
         {
             var wallTileCount = (double)grid.Tiles.Count(tile => tile.Value.Type == EnumTileType.Wall);
-            if (wallTileCount / (grid.Width * grid.Height) > MaxWallPercentage)
+            if (wallTileCount / (grid.Width * grid.Height) < MaxWallPercentage)
             {
                 return _nextHandler?.Validate(grid) ?? string.Empty;
             }

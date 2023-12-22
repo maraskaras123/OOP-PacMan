@@ -27,7 +27,7 @@ namespace PacMan.Server
             builder.Services.AddDbContext<ApplicationDbContext>(
                 options => options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
             builder.Services.AddControllers();
-            builder.Services.AddSingleton<IGameService, GameService>();
+            builder.Services.AddScoped<IGameService, GameService>();
             builder.Services.AddSignalR(o => { o.EnableDetailedErrors = true; });
             builder.Services
                 .AddSignalR(o => { o.EnableDetailedErrors = true; })

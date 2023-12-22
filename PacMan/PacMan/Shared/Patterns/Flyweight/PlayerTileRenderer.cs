@@ -23,7 +23,8 @@ namespace PacMan.Shared.Patterns.Flyweight
                     EnumDirection.Left => "rotate(180 0 0)",
                     _ => ""
                 };
-                return new(string.Format(_tileHtml, rotate));
+                var text = string.Format(_tileHtml, rotate);
+                return new(text);
             }
 
             return new(string.Format(_tileHtml, ""));

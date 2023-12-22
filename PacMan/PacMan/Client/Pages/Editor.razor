@@ -21,6 +21,13 @@
 }
 else
 {
+    <div class="form-group row">
+        <label for="Name" class="col-sm-2 col-form-label">Grid Name</label>
+        <div class="col-sm-4">
+            <InputText class="form-control" @bind-Value="GridName"></InputText>
+        </div>
+    </div>
+
     <div stlye="border: 1px">
         Current brush: @currentBrush.ToString()
 

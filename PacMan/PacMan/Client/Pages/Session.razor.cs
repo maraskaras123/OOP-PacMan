@@ -29,6 +29,11 @@ namespace PacMan.Client.Pages
         public TileRendererFactory TileRendererFactory { get; set; } = new();
         public List<EditorGridModel> PreMadeGrids { get; set; } = new();
 
+        public GridModel? WaitingGrid { get; set; }
+        public List<EnemyModel>? WaitingEnemies { get; set; }
+        public object Lock { get; set; } = new object();
+
+
         [Parameter]
         public string SessionId { get; set; }
 
@@ -123,38 +128,48 @@ namespace PacMan.Client.Pages
         private Task OnReceiveGrid(GridModel receivedGrid)
         {
             GridState = receivedGrid.ClearTiles();
-            GridItems = GridItems.Where(x => x.Value.GridTileType != GridTileType.Other)
-                .ToDictionary(x => x.Key, x => x.Value);
-            foreach (var tile in receivedGrid.Tiles)
+            var gridItems = GridItems.ToDictionary(x => x.Key, x => x.Value)/*.Where(x => x.Value.GridTileType != GridTileType.Other)
+                .ToDictionary(x => x.Key, x => x.Value)*/;
+            lock (Lock)
             {
-                var coordinates = tile.Key.Split("_");
-                var point = new Point(int.Parse(coordinates[0]), int.Parse(coordinates[1]));
-                GridItems[point.X * GridState.Width + point.Y] = new()
+                foreach (var tile in receivedGrid.Tiles)
                 {
-                    GridTileType = GridTileType.Other,
-                    Coordinate = point,
-                    Renderer = TileRendererFactory.GetRenderer(tile.Value.ToString())
-                };
+                    var coordinates = tile.Key.Split("_");
+                    var point = new Point(int.Parse(coordinates[0]), int.Parse(coordinates[1]));
+                    GridItems[point.X * GridState.Width + point.Y] = new()
+                    {
+                        GridTileType = GridTileType.Other,
+                        Coordinate = point,
+                        Renderer = TileRendererFactory.GetRenderer(tile.Value.ToString())
+                    };
+                }
+                StateHasChanged();
             }
+            //GridItems = gridItems;
 
-            StateHasChanged();
+            
             return Task.CompletedTask;
         }
 
         private Task OnReceiveEnemies(List<EnemyModel> receivedEnemies)
         {
-            GridItems = GridItems.Where(x => x.Value.GridTileType != GridTileType.Enemy)
-                .ToDictionary(x => x.Key, x => x.Value);
-            foreach (var enemy in receivedEnemies)
+            var gridItems =  GridItems.ToDictionary(x => x.Key, x => x.Value)/*.Where(x => x.Value.GridTileType != GridTileType.Enemy)
+                .ToDictionary(x => x.Key, x => x.Value)*/;
+            lock (Lock)
             {
-                GridItems[enemy.Position.X * GridState.Width + enemy.Position.Y] = new()
+                foreach (var enemy in receivedEnemies)
                 {
-                    GridTileType = GridTileType.Enemy,
-                    Coordinate = enemy.Position,
-                    Renderer = TileRendererFactory.GetRenderer($"Enemy_{GetGhostColorByChar(enemy.Character)}")
-                };
+                    GridItems[enemy.Position.X * GridState.Width + enemy.Position.Y] = new()
+                    {
+                        GridTileType = GridTileType.Enemy,
+                        Coordinate = enemy.Position,
+                        Renderer = TileRendererFactory.GetRenderer($"Enemy_{GetGhostColorByChar(enemy.Character)}")
+                    };
+                }
+                StateHasChanged();
             }
-            StateHasChanged();
+            
+            //GridItems = gridItems;
             return Task.CompletedTask;
         }
 
@@ -162,20 +177,23 @@ namespace PacMan.Client.Pages
         {
             GameState = model.GameState;
 
-            GridItems = GridItems.Where(x => x.Value.GridTileType != GridTileType.Player)
-                .ToDictionary(x => x.Key, x => x.Value);
-            foreach (var player in model.Coordinates)
+            var gridItems = GridItems.ToDictionary(x => x.Key, x => x.Value)/*.Where(x => x.Value.GridTileType != GridTileType.Player)
+                .ToDictionary(x => x.Key, x => x.Value)*/;
+
+            var width = GridState.Width;
+            var height = GridState.Height;
+
+            for (int i = 0; i < width * height; i++)
             {
-                var coordinates = player.Split(",");
-                var point = new Point(int.Parse(coordinates[1]), int.Parse(coordinates[2]));
-                var direction = (EnumDirection)int.Parse(coordinates[3]);
-                GridItems[point.X * GridState.Width + point.Y] = new()
+                if (!GridItems.TryGetValue(i, out _))
                 {
-                    GridTileType = GridTileType.Player,
-                    Coordinate = point,
-                    Renderer = TileRendererFactory.GetRenderer($"Player_{GetPacmanColorByPlayer(int.Parse(coordinates[0]))}"),
-                    Options = direction.ToString()
-                };
+                    GridItems[i] = new()
+                    {
+                        GridTileType = GridTileType.Other,
+                        Coordinate = new(i / width, i % width),
+                        Renderer = TileRendererFactory.GetRenderer(EnumTileType.Empty.ToString())
+                    };
+                }
             }
             PlayerInfo = new();
             for (var i = 0; i < model.Points.Count; i++)
@@ -184,7 +202,25 @@ namespace PacMan.Client.Pages
             }
 
             PlayerInfo = PlayerInfo.OrderByDescending(ps => ps.Points).ToList();
-            StateHasChanged();
+            //GridItems = gridItems;
+            lock (Lock)
+            {
+                foreach (var player in model.Coordinates)
+                {
+                    var coordinates = player.Split(",");
+                    var point = new Point(int.Parse(coordinates[1]), int.Parse(coordinates[2]));
+                    var direction = (EnumDirection)int.Parse(coordinates[3]);
+                    GridItems[point.X * GridState.Width + point.Y] = new()
+                    {
+                        GridTileType = GridTileType.Player,
+                        Coordinate = point,
+                        Renderer = TileRendererFactory.GetRenderer($"Player_{GetPacmanColorByPlayer(int.Parse(coordinates[0]))}"),
+                        Options = direction.ToString()
+                    };
+                }
+                StateHasChanged();
+            }
+            
             return Task.CompletedTask;
         }
 
@@ -275,9 +311,8 @@ namespace PacMan.Client.Pages
         {
             return character switch
             {
-                'B' => GetGhostSvgString("2803ff"),
-                'R' => GetGhostSvgString("ff0303"),
-                _ => GetGhostSvgString()
+                'R' => "ff0303",
+                _ => "2803ff"
             };
         }
 

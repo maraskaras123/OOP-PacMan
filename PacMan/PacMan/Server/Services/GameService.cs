@@ -7,6 +7,7 @@ using PacMan.Shared.Models;
 using PacMan.Shared.Patterns.Visitor;
 using System.Drawing;
 using System.Text.Json;
+using PacMan.Shared.Converters;
 
 namespace PacMan.Server.Services
 {
@@ -75,7 +76,9 @@ namespace PacMan.Server.Services
             var gridJson = gridOptions.SelectedGridId is not null
                 ? _dbContext.Grids.Find(gridOptions.SelectedGridId)?.GridJson
                 : null;
-            var grid = gridJson is not null ? JsonSerializer.Deserialize<TileGrid>(gridJson) : new TileGridBuilder()
+            var options = new JsonSerializerOptions();
+            options.Converters.Add(new TileJsonConverter());
+            var grid = gridJson is not null ? (TileGrid)JsonSerializer.Deserialize<TileGridDto>(gridJson) : new TileGridBuilder()
                 .WithWidth(gridOptions.Width)
                 .WithHeight(gridOptions.Height)
                 .WithRandomTiles(gridOptions.RandomTileCount)
@@ -119,7 +122,7 @@ namespace PacMan.Server.Services
 
             while (session.GameState != EnumGameState.Finished)
             {
-                await Task.WhenAll(Task.Delay(500), Tick(sessionId, session));
+                await Task.WhenAll(Task.Delay(1000), Tick(sessionId, session));
                 await _hubContext.Clients.Group(sessionId).ReceiveGrid(session.Grid.ConvertForSending());
                 await _hubContext.Clients.Group(sessionId).Tick(new(session.GameState,
                     session.State.Select((x, index) =>
