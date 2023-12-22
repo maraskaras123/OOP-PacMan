@@ -12,5 +12,10 @@ namespace PacMan.Shared.Models
     {
         public int X { get; set; }
         public int Y { get; set; }
+
+        public static implicit operator Point(PointDto point)
+        {
+            return new(point.X, point.Y);
+        }
     }
 }

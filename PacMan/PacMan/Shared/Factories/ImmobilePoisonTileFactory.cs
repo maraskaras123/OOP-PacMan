@@ -2,11 +2,11 @@ using PacMan.Shared.Models;
 
 namespace PacMan.Shared.Factories
 {
-    public class ImobilePoisonTileFactory : TileFactory
+    public class ImmobilePoisonTileFactory : TileFactory
     {
         public override Tile CreateTile()
         {
-            return new ImobilePoisonTile();
+            return new ImmobilePoisonTile();
         }
     }
 }

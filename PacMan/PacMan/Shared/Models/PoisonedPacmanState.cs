@@ -8,29 +8,31 @@ namespace PacMan.Shared.Models
         private List<IPoison> _poisons;
         public int MoveSpeedTick;
         private readonly PlayerStateModel _player;
-        public bool Imobilized;
+        public bool Immobilized;
         public bool AbleToEat = true;
-        public bool DecresingPoints = false;
+        public bool DecreasingPoints = false;
+
         public PoisonedPacmanState(PlayerStateModel player, List<IPoison> poisons,
-         bool imobilized, bool ableToEat, bool decresingPoints, int moveSpeedTick, int imobilizedTicks,
-         int pelletPoints)
+            bool immobilized, bool ableToEat, bool decreasingPoints, int moveSpeedTick, int imobilizedTicks,
+            int pelletPoints)
         {
             _poisons = poisons;
             _player = player;
-            Imobilized = imobilized;
+            Immobilized = immobilized;
             AbleToEat = ableToEat;
-            DecresingPoints = decresingPoints;
+            DecreasingPoints = decreasingPoints;
             MoveSpeedTick = moveSpeedTick;
             _imobilizedTicks = imobilizedTicks;
             PelletPoints = pelletPoints;
         }
+
         public PoisonedPacmanState(PlayerStateModel player)
         {
-            _poisons = new List<IPoison>();
+            _poisons = new();
             _player = player;
-            Imobilized = false;
+            Immobilized = false;
             AbleToEat = true;
-            DecresingPoints = false;
+            DecreasingPoints = false;
             MoveSpeedTick = 1;
             PelletPoints = 1;
         }
@@ -39,11 +41,11 @@ namespace PacMan.Shared.Models
         {
             if (!_poisons.Any(p => p.GetType() == poison.GetType())) // checks if the poison isnt already active
             {
-
                 _poisons.Add(poison);
                 poison.ApplyEffect(player);
             }
         }
+
         public void RemoveEffect(PoisonedPacmanState player, Type removePoison)
         {
             IPoison poisonToRemove = null;
@@ -55,6 +57,7 @@ namespace PacMan.Shared.Models
                     break;
                 }
             }
+
             if (poisonToRemove != null)
             {
                 poisonToRemove.RemoveEffect(player);
@@ -64,28 +67,32 @@ namespace PacMan.Shared.Models
 
         public bool CanMove()
         {
-            if (Imobilized)
+            if (Immobilized)
             {
                 _imobilizedTicks++;
                 if (_imobilizedLenght == _imobilizedTicks)
                 {
                     _imobilizedTicks = 0;
-                    RemoveEffect(this, typeof(ImobilePoison));
+                    RemoveEffect(this, typeof(ImmobilePoison));
                 }
+
                 return false;
             }
+
             _player.TicksTillMove--;
             if (_player.TicksTillMove == 0)
             {
                 _player.TicksTillMove = MoveSpeedTick;
                 return true;
             }
+
             return false;
         }
 
         public IPacmanState CloneForNewPlayerStateModel(PlayerStateModel model)
         {
-            return new PoisonedPacmanState(model, _poisons, Imobilized, AbleToEat, DecresingPoints, MoveSpeedTick, _imobilizedTicks, PelletPoints);
+            return new PoisonedPacmanState(model, _poisons, Immobilized, AbleToEat, DecreasingPoints, MoveSpeedTick,
+                _imobilizedTicks, PelletPoints);
         }
 
         public void CollideWithGhost()
@@ -100,7 +107,7 @@ namespace PacMan.Shared.Models
 
         public void Tick()
         {
-            if (DecresingPoints)
+            if (DecreasingPoints)
             {
                 _player.AddPoints(-1);
             }

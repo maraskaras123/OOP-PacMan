@@ -23,7 +23,7 @@ namespace PacMan.Server.Services
         private readonly EnemyFactory _blueGhostFactory;
         private readonly TileFactory _emptyTileFactory;
         private readonly TileFactory _megaPelletTileFactory;
-        private readonly TileFactory _imobilizePoisonFactory;
+        private readonly TileFactory _immobilizePoisonFactory;
         private readonly TileFactory _slowPoisonFactory;
         private readonly TileFactory _slowPoisonAntidoteFactory;
         private readonly TileFactory _foodPoisonFactory;
@@ -42,7 +42,7 @@ namespace PacMan.Server.Services
             _blueGhostFactory = new BlueGhostFactory();
             _emptyTileFactory = new EmptyTileFactory();
             _megaPelletTileFactory = new MegaPelletTileFactory();
-            _imobilizePoisonFactory = new ImobilePoisonTileFactory();
+            _immobilizePoisonFactory = new ImmobilePoisonTileFactory();
             _slowPoisonFactory = new SlowPoisonTileFactory();
             _slowPoisonAntidoteFactory = new SlowPoisonAntidoteFactory();
             _foodPoisonFactory = new FoodPoisonFactory();
@@ -166,7 +166,6 @@ namespace PacMan.Server.Services
                 enemy.Move(session);
             }
 
-
             foreach (var state in session.State)
             {
                 TouchingEnemy(session, state.Value);
@@ -216,7 +215,7 @@ namespace PacMan.Server.Services
             SpawnPowerUp(session, _pointsPoisonFactory, 40);
             SpawnPowerUp(session, _foodPoisonFactory, 40);
             SpawnPowerUp(session, _slowPoisonFactory, 40);
-            SpawnPowerUp(session, _imobilizePoisonFactory, 40);
+            SpawnPowerUp(session, _immobilizePoisonFactory, 40);
             SpawnPowerUp(session, _allCureTileFactory, 20);
             session.Ticks += 1;
         }

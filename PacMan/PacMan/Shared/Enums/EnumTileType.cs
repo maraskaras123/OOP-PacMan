@@ -2,7 +2,7 @@
 {
     public enum EnumTileType
     {
-        Empty,
+        Empty = 1,
         Pellet,
         MegaPellet,
         PointsPoison,

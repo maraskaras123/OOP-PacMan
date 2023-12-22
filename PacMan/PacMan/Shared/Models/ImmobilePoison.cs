@@ -2,7 +2,7 @@ using PacMan.Shared.Patterns.Visitor;
 
 namespace PacMan.Shared.Models
 {
-    public class ImobilePoison : IPoison
+    public class ImmobilePoison : IPoison
     {
         public void AcceptVisitor(IVisitor visitor)
         {
@@ -10,12 +10,12 @@ namespace PacMan.Shared.Models
         }
         public void ApplyEffect(PoisonedPacmanState player)
         {
-            player.Imobilized = true;
+            player.Immobilized = true;
         }
 
         public void RemoveEffect(PoisonedPacmanState player)
         {
-            player.Imobilized = false;
+            player.Immobilized = false;
         }
     }
 }

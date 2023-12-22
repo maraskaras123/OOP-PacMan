@@ -10,12 +10,12 @@ namespace PacMan.Shared.Models
         }
         public void ApplyEffect(PoisonedPacmanState player)
         {
-            player.DecresingPoints = true;
+            player.DecreasingPoints = true;
         }
 
         public void RemoveEffect(PoisonedPacmanState player)
         {
-            player.DecresingPoints = false;
+            player.DecreasingPoints = false;
         }
     }
 }
