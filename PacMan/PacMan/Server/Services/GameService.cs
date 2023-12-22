@@ -94,7 +94,7 @@ namespace PacMan.Server.Services
             foreach (var connection in session.Connections)
             {
                 var stateModel = new PlayerStateModel
-                { Name = connection.Key, Direction = (EnumDirection)rnd.Next(0, 4) };
+                    { Name = connection.Key, Direction = (EnumDirection)rnd.Next(0, 4) };
                 var coordinates = new Point(rnd.Next(session.Grid.Width), rnd.Next(session.Grid.Height));
                 while (session.Grid.Tiles[$"{coordinates.X}_{coordinates.Y}"].Type == EnumTileType.Wall)
                 {
@@ -154,6 +154,7 @@ namespace PacMan.Server.Services
             {
                 player.SetState(new PoisonedPacmanState(player));
             }
+
             player.AddPoison(poison);
         }
 
@@ -189,9 +190,10 @@ namespace PacMan.Server.Services
                         desiredX++;
                         break;
                 }
+
                 if (state.Value.CanMove())
                 {
-                    TileVisitor visitor = new TileVisitor(desiredX, desiredY, state.Value, session);
+                    var visitor = new TileVisitor(desiredX, desiredY, state.Value, session);
 
                     var desiredTile = session.Grid.GetTile(desiredX, desiredY);
 
@@ -204,12 +206,13 @@ namespace PacMan.Server.Services
                 {
                     session.GameState = EnumGameState.Finished;
                 }
+
                 state.Value.Tick();
             }
 
             var enemyData = session.Enemies
                 .Select(e => new EnemyModel
-                { Position = new() { X = e.Position.X, Y = e.Position.Y }, Character = e.Character })
+                    { Position = new() { X = e.Position.X, Y = e.Position.Y }, Character = e.Character })
                 .ToList();
             await _hubContext.Clients.Group(sessionId).ReceiveEnemies(enemyData);
             SpawnPowerUp(session, _pointsPoisonFactory, 40);
@@ -226,11 +229,11 @@ namespace PacMan.Server.Services
             if (session.Ticks % ticks == 0)
             {
                 var rnd = new Random();
-                bool placed = false;
+                var placed = false;
                 while (!placed)
                 {
-                    int x = rnd.Next(session.Grid.Width);
-                    int y = rnd.Next(session.Grid.Height);
+                    var x = rnd.Next(session.Grid.Width);
+                    var y = rnd.Next(session.Grid.Height);
                     if (session.Grid.GetTile(x, y).Type != EnumTileType.Wall)
                     {
                         session.Grid.ChangeTile(tileFactory.CreateTile(), x, y);

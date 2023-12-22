@@ -1,18 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
-using PacMan.Shared.Models;
+﻿using PacMan.Shared.Models;
 
 namespace PacMan.Shared.Patterns.Memento
 {
     public class Caretaker
     {
-        private List<IMemento> _mementos = new List<IMemento>();
+        private readonly List<IMemento> _mementos = new();
 
-        private TileGrid _originator = null;
+        private readonly TileGrid _originator;
 
         public Caretaker(TileGrid originator)
         {
@@ -21,26 +15,25 @@ namespace PacMan.Shared.Patterns.Memento
 
         public void Backup()
         {
-            this._mementos.Add(this._originator.Save());
+            _mementos.Add(_originator.Save());
         }
 
         public void Undo()
         {
-            if (this._mementos.Count == 0)
+            if (_mementos.Count == 0)
             {
                 return;
             }
 
-            var memento = this._mementos.Last();
-            this._mementos.Remove(memento);
-
+            var memento = _mementos.Last();
+            _mementos.Remove(memento);
             try
             {
-                this._originator.Restore(memento);
+                _originator.Restore(memento);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                this.Undo();
+                Undo();
             }
         }
     }

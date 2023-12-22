@@ -17,7 +17,7 @@
         </div>
     </div>
 
-    <button @onclick="() => SetGridOptions()">Begin</button>
+    <button @onclick="SetGridOptions">Begin</button>
 }
 else
 {
@@ -25,31 +25,45 @@ else
         Current brush: @currentBrush.ToString()
 
         <ul>
-            <li><button @onclick="() => SetBrush(EnumTileType.Wall)">Select Wall</button></li>
-            <li><button @onclick="() => SetBrush(EnumTileType.Pellet)">Select Pellet</button></li>
-            <li><button @onclick="() => SetBrush(EnumTileType.MegaPellet)">Select MegaPellet</button></li>
-            <li><button @onclick="() => SetBrush(EnumTileType.Empty)">Select Empty</button></li>
+            <li>
+                <button @onclick="() => SetBrush(EnumTileType.Wall)">Select Wall</button>
+            </li>
+            <li>
+                <button @onclick="() => SetBrush(EnumTileType.Pellet)">Select Pellet</button>
+            </li>
+            <li>
+                <button @onclick="() => SetBrush(EnumTileType.MegaPellet)">Select MegaPellet</button>
+            </li>
+            <li>
+                <button @onclick="() => SetBrush(EnumTileType.Empty)">Select Empty</button>
+            </li>
         </ul>
 
     </div>
     <ul>
         <li>Currently painting: @isPainting</li>
+        @if (Error.Length > 0)
+        {
+            <li>
+                <p style="color: red">@Error</p>
+            </li>
+        }
         <li>@test</li>
     </ul>
-    <button @onclick="() => Undo()">undo</button>
-    <button @onclick="() => SetEmptyToPellet()">Set empty tiles to pellet tiles</button>
+    <button @onclick="Undo">undo</button>
+    <button @onclick="SetEmptyToPellet">Set empty tiles to pellet tiles</button>
     <div draggable="false">
-        <table class="game-grid" @onmouseup="() => StopPainting()"  draggable="false">
+        <table class="game-grid" @onmouseup="StopPainting" draggable="false">
             @for (var i = 0; i < Grid.Height; i++)
             {
                 <tr>
                     @for (var j = 0; j < Grid.Width; j++)
                     {
-                        int row = j;
-                        int col = i;
+                        var row = j;
+                        var col = i;
                         var tile = Grid.GetTile(j, i);
-                        string _content = "";
-                        string _class = "grid-cell";
+                        var _content = "";
+                        var _class = "grid-cell";
 
                         switch (tile.Type)
                         {
@@ -73,13 +87,17 @@ else
                         <td class="@_class" draggable="false"
                             @onmousedown="() => StartPainting()"
                             @onmousemove="() => HandlePainting(row, col)">
-                            @if(tile.Type != EnumTileType.Wall) { <center><div class='@_content unselectable' draggable="false"></div></center>}
+                            @if (tile.Type != EnumTileType.Wall)
+                            {
+                                <center>
+                                    <div class='@_content unselectable' draggable="false"></div>
+                                </center>
+                            }
                         </td>
-
                     }
                 </tr>
             }
         </table>
-        <button @onclick="() => ConvertToJson()">send it</button>
+        <button @onclick="async () => await UploadGrid()">Send it</button>
     </div>
 }

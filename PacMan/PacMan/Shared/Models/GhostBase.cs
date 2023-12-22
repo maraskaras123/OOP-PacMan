@@ -1,65 +1,70 @@
-using System.Drawing;
 using PacMan.Shared.Enums;
-using PacMan.Shared.Models;
+using System.Drawing;
 
-public abstract class GhostBase : IEnemy
+namespace PacMan.Shared.Models
 {
-    public Point Position { get; set; }
-
-    public char Character { get; }
-    public int TicksPerMove { get; set; }
-    protected int _moveTicks = 1;
-
-
-    protected GhostBase(char character, int ticksPerMove)
+    public abstract class GhostBase : IEnemy
     {
-        Character = character;
-        TicksPerMove = ticksPerMove;
-    }
+        public Point Position { get; set; }
 
-    public void Move(GameStateModel session)
-    {
-        _moveTicks--;
-        if (_moveTicks == 0)
+        public char Character { get; }
+        public int TicksPerMove { get; set; }
+        protected int _moveTicks = 1;
+
+
+        protected GhostBase(char character, int ticksPerMove)
         {
-            var nearestPlayer = FindPlayer(session.State);
-            Position = MovePattern(session, Position, nearestPlayer);
-            _moveTicks = TicksPerMove;
+            Character = character;
+            TicksPerMove = ticksPerMove;
         }
-    }
-    protected abstract Point FindPlayer(Dictionary<string, PlayerStateModel> playerStates);
-    protected abstract Point MovePattern(GameStateModel session, Point start, Point end);
-    public void Respawn(GameStateModel session)
-    {
-        var rand = new Random();
-        bool spawned = false;
-        while (!spawned)
+
+        public void Move(GameStateModel session)
         {
-            Point point = new Point(rand.Next(session.Grid.Width), rand.Next(session.Grid.Height));
-            foreach (var enemy in session.Enemies)
+            _moveTicks--;
+            if (_moveTicks == 0)
             {
-                if (point == enemy.Position || session.Grid.GetTile(point.X, point.Y).Type == EnumTileType.Wall)
+                var nearestPlayer = FindPlayer(session.State);
+                Position = MovePattern(session, Position, nearestPlayer);
+                _moveTicks = TicksPerMove;
+            }
+        }
+
+        protected abstract Point FindPlayer(Dictionary<string, PlayerStateModel> playerStates);
+        protected abstract Point MovePattern(GameStateModel session, Point start, Point end);
+
+        public void Respawn(GameStateModel session)
+        {
+            var rand = new Random();
+            var spawned = false;
+            while (!spawned)
+            {
+                var point = new Point(rand.Next(session.Grid.Width), rand.Next(session.Grid.Height));
+                foreach (var enemy in session.Enemies)
                 {
+                    if (point == enemy.Position || session.Grid.GetTile(point.X, point.Y).Type == EnumTileType.Wall)
+                    {
+                        break;
+                    }
+
+                    Position = point;
+                    spawned = true;
                     break;
                 }
-                Position = point;
-                spawned = true;
-                break;
             }
         }
-    }
-    protected bool CanMoveTo(GameStateModel session, Point nextPosition)
-    {
 
-        foreach (var enemy in session.Enemies)
+        protected bool CanMoveTo(GameStateModel session, Point nextPosition)
         {
-            if (nextPosition == enemy.Position)
+            foreach (var enemy in session.Enemies)
             {
-                return false;
+                if (nextPosition == enemy.Position)
+                {
+                    return false;
+                }
             }
-        }
 
-        // Check if the next position is a wall
-        return session.Grid.GetTile(nextPosition.X, nextPosition.Y).Type != EnumTileType.Wall;
+            // Check if the next position is a wall
+            return session.Grid.GetTile(nextPosition.X, nextPosition.Y).Type != EnumTileType.Wall;
+        }
     }
 }

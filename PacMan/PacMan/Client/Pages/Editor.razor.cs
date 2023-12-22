@@ -6,6 +6,7 @@ using PacMan.Shared.Patterns.Memento;
 using PacMan.Shared.Patterns.Proxy;
 using System.Text;
 using System.Text.Json;
+using PacMan.Shared.Patterns.ChainOfResponsibility;
 
 namespace PacMan.Client.Pages
 {
@@ -25,6 +26,8 @@ namespace PacMan.Client.Pages
         private readonly TileFactoryProxy<WallTileFactory> _wallsFactory = new();
         private readonly TileFactoryProxy<EmptyTileFactory> _emptyFactory = new();
         private readonly TileFactoryProxy<MegaPelletTileFactory> _megaPelletFactory = new();
+
+        private string Error { get; set; } = string.Empty;
 
         private EnumTileType currentBrush = EnumTileType.Wall;
 
@@ -80,11 +83,10 @@ namespace PacMan.Client.Pages
             }
         }
 
-        private bool StartPainting()
+        private void StartPainting()
         {
             caretaker.Backup();
             isPainting = true;
-            return false;
         }
 
         private void StopPainting()
@@ -150,6 +152,13 @@ namespace PacMan.Client.Pages
 
         private async Task UploadGrid()
         {
+            var validator = new TileGridValidator();
+            var result = validator.Validate(Grid);
+            if (result.Length > 0)
+            {
+                Error = result;
+                return;
+            }
             // sorry boss nezinau whata doin
             //
         }
