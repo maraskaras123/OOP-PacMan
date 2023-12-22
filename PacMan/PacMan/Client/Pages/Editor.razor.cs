@@ -1,11 +1,9 @@
 ﻿using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
 using PacMan.Shared.Enums;
 using PacMan.Shared.Factories;
 using PacMan.Shared.Models;
 using PacMan.Shared.Patterns.Memento;
-using System;
-using System.Net.Http.Json;
+using PacMan.Shared.Patterns.Proxy;
 using System.Text;
 using System.Text.Json;
 
@@ -16,33 +14,33 @@ namespace PacMan.Client.Pages
         [Inject]
         public HttpClient HttpClient { get; set; }
 
-        bool GridOptionsSelected = false;
+        private bool GridOptionsSelected = false;
 
-        bool isPainting = false;
+        private bool isPainting = false;
 
-        TileGridBuilderOptions GridOptions = new TileGridBuilderOptions();
-        TileGrid Grid = new TileGrid();
+        private TileGridBuilderOptions GridOptions = new();
+        private TileGrid Grid = new();
 
-        private PelletTileFactory _pelletFactory = new PelletTileFactory();
-        private WallTileFactory _wallsFactory = new WallTileFactory();
-        private EmptyTileFactory _emptyFactory = new EmptyTileFactory();
-        private MegaPelletTileFactory _megapelletFactory = new MegaPelletTileFactory();
+        private readonly TileFactoryProxy<PelletTileFactory> _pelletFactory = new();
+        private readonly TileFactoryProxy<WallTileFactory> _wallsFactory = new();
+        private readonly TileFactoryProxy<EmptyTileFactory> _emptyFactory = new();
+        private readonly TileFactoryProxy<MegaPelletTileFactory> _megaPelletFactory = new();
 
-        EnumTileType currentBrush = EnumTileType.Wall;
+        private EnumTileType currentBrush = EnumTileType.Wall;
 
-        Caretaker caretaker = new Caretaker(new TileGrid());
+        private Caretaker caretaker = new(new());
 
-        string test = "";
+        private string test = "";
 
         private void SetGridOptions()
         {
-            TileGridBuilder builder = new TileGridBuilder();
+            var builder = new TileGridBuilder();
             builder.WithHeight(GridOptions.Height)
                 .WithWidth(GridOptions.Width)
                 .WithRandomTiles(0);
             Grid = builder.Build();
-            
-            caretaker = new Caretaker(Grid);
+
+            caretaker = new(Grid);
 
             GridOptionsSelected = true;
         }
@@ -69,20 +67,21 @@ namespace PacMan.Client.Pages
                             Tile = _pelletFactory.CreateTile();
                             break;
                         case EnumTileType.MegaPellet:
-                            Tile = _megapelletFactory.CreateTile();
+                            Tile = _megaPelletFactory.CreateTile();
                             break;
                         default:
                             Tile = _emptyFactory.CreateTile();
                             break;
                     }
+
                     Grid.ChangeTile(Tile, row, col);
                     StateHasChanged();
                 }
-            }            
+            }
         }
 
         private bool StartPainting()
-        {         
+        {
             caretaker.Backup();
             isPainting = true;
             return false;
@@ -90,7 +89,7 @@ namespace PacMan.Client.Pages
 
         private void StopPainting()
         {
-            isPainting = false;            
+            isPainting = false;
         }
 
         private void Undo()
@@ -105,16 +104,17 @@ namespace PacMan.Client.Pages
             {
                 tile.Type = EnumTileType.Pellet;
             }
+
             StateHasChanged();
         }
 
         private string ConvertToJson()
         {
             // Create a MemoryStream to write JSON data
-            using (MemoryStream ms = new MemoryStream())
+            using (var ms = new MemoryStream())
             {
                 // Create Utf8JsonWriter using MemoryStream
-                using (Utf8JsonWriter writer = new Utf8JsonWriter(ms, new JsonWriterOptions { Indented = true }))
+                using (var writer = new Utf8JsonWriter(ms, new() { Indented = true }))
                 {
                     // Start writing the JSON object
                     writer.WriteStartObject();
@@ -150,8 +150,6 @@ namespace PacMan.Client.Pages
 
         private async Task UploadGrid()
         {
-
-            
             // sorry boss nezinau whata doin
             //
         }
