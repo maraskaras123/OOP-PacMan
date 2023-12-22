@@ -2,9 +2,17 @@
 {
     public enum EnumTileType
     {
-        Empty,
+        Empty = 1,
         Pellet,
         MegaPellet,
+        PointsPoison,
+        PointsPoisonAntidote,
+        FoodPoison,
+        FoodPoisonAntidote,
+        ImobilePoison,
+        SlowPoison,
+        SlowPoisonAntidote,
+        AllCureTile,
         Wall
     }
 }

@@ -31,5 +31,10 @@ namespace PacMan.Shared.Models
 
             return EnumTileType.Empty;
         }
+
+        public GridModel ClearTiles()
+        {
+            return new(Width, Height, new());
+        }
     }
 }

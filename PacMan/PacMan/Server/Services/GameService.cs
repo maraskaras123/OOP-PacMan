@@ -1,9 +1,12 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using PacMan.Server.DbSchema;
 using PacMan.Server.Hubs;
 using PacMan.Shared.Enums;
 using PacMan.Shared.Factories;
 using PacMan.Shared.Models;
+using PacMan.Shared.Patterns.Visitor;
 using System.Drawing;
+using System.Text.Json;
 
 namespace PacMan.Server.Services
 {
@@ -18,17 +21,41 @@ namespace PacMan.Server.Services
     public class GameService : IGameService
     {
         private readonly IHubContext<GameHub, IGameHubClient> _hubContext;
+        private readonly ApplicationDbContext _dbContext;
+
         private readonly EnemyFactory _redGhostFactory;
         private readonly EnemyFactory _blueGhostFactory;
         private readonly TileFactory _emptyTileFactory;
+        private readonly TileFactory _megaPelletTileFactory;
+        private readonly TileFactory _immobilizePoisonFactory;
+        private readonly TileFactory _slowPoisonFactory;
+        private readonly TileFactory _slowPoisonAntidoteFactory;
+        private readonly TileFactory _foodPoisonFactory;
+        private readonly TileFactory _foodPoisonAntidoteFactory;
+
+        private readonly TileFactory _pointsPoisonFactory;
+        private readonly TileFactory _pointsPoisonAntidoteFactory;
+        private readonly TileFactory _allCureTileFactory;
+
+
         private int _endPoints;
 
-        public GameService(IHubContext<GameHub, IGameHubClient> hubContext)
+        public GameService(IHubContext<GameHub, IGameHubClient> hubContext, ApplicationDbContext dbContext)
         {
             _redGhostFactory = new RedGhostFactory();
             _blueGhostFactory = new BlueGhostFactory();
             _emptyTileFactory = new EmptyTileFactory();
+            _megaPelletTileFactory = new MegaPelletTileFactory();
+            _immobilizePoisonFactory = new ImmobilePoisonTileFactory();
+            _slowPoisonFactory = new SlowPoisonTileFactory();
+            _slowPoisonAntidoteFactory = new SlowPoisonAntidoteFactory();
+            _foodPoisonFactory = new FoodPoisonFactory();
+            _foodPoisonAntidoteFactory = new FoodPoisonAntidoteFactory();
+            _pointsPoisonFactory = new PointsPoisonTileFactory();
+            _pointsPoisonAntidoteFactory = new PointPoisonAntidoteFactory();
+            _allCureTileFactory = new AllCureTileFactory();
             _hubContext = hubContext;
+            _dbContext = dbContext;
             _endPoints = 100;
         }
 
@@ -45,7 +72,10 @@ namespace PacMan.Server.Services
         {
             CreateEnemies(session);
             session.GameState = EnumGameState.Starting;
-            var grid = new TileGridBuilder()
+            var gridJson = gridOptions.SelectedGridId is not null
+                ? _dbContext.Grids.Find(gridOptions.SelectedGridId)?.GridJson
+                : null;
+            var grid = gridJson is not null ? JsonSerializer.Deserialize<TileGrid>(gridJson) : new TileGridBuilder()
                 .WithWidth(gridOptions.Width)
                 .WithHeight(gridOptions.Height)
                 .WithRandomTiles(gridOptions.RandomTileCount)
@@ -75,7 +105,9 @@ namespace PacMan.Server.Services
                     { Name = connection.Key, Direction = (EnumDirection)rnd.Next(0, 4) };
                 var coordinates = new Point(rnd.Next(session.Grid.Width), rnd.Next(session.Grid.Height));
                 while (session.Grid.Tiles[$"{coordinates.X}_{coordinates.Y}"].Type == EnumTileType.Wall)
+                {
                     coordinates = new(rnd.Next(session.Grid.Width), rnd.Next(session.Grid.Height));
+                }
 
                 stateModel.Coordinates = coordinates;
                 session.State.Add(connection.Key, stateModel);
@@ -90,7 +122,8 @@ namespace PacMan.Server.Services
                 await Task.WhenAll(Task.Delay(500), Tick(sessionId, session));
                 await _hubContext.Clients.Group(sessionId).ReceiveGrid(session.Grid.ConvertForSending());
                 await _hubContext.Clients.Group(sessionId).Tick(new(session.GameState,
-                    session.State.Select((x, index) => $"{index},{x.Value.Coordinates.X},{x.Value.Coordinates.Y},{(int)x.Value.Direction}")
+                    session.State.Select((x, index) =>
+                            $"{index},{x.Value.Coordinates.X},{x.Value.Coordinates.Y},{(int)x.Value.Direction}")
                         .ToList(),
                     session.State.Select(x => x.Value.Points).ToList()));
             }
@@ -105,9 +138,32 @@ namespace PacMan.Server.Services
         {
             foreach (var enemy in session.Enemies.Where(enemy => state.Coordinates == enemy.Position))
             {
-                state.Points -= 10;
+                state.CollideWithGhost();
                 enemy.Respawn(session);
             }
+        }
+
+        // private bool IsOcupiedByPacman(GameStateModel session, int desiredX, int desiredY)
+        // {
+        //     Point desiredPoint = new Point(desiredX, desiredY);
+        //     foreach (var pacman in session.State)
+        //     {
+        //         if (pacman.Value.Coordinates == desiredPoint)
+        //         {
+        //             return true;
+        //         }
+        //     }
+        //     return false;
+        // }
+
+        private void HandlePoison(IPoison poison, PlayerStateModel player)
+        {
+            if (player.GetState() != typeof(PoisonedPacmanState))
+            {
+                player.SetState(new PoisonedPacmanState(player));
+            }
+
+            player.AddPoison(poison);
         }
 
         // Game Logic
@@ -124,69 +180,32 @@ namespace PacMan.Server.Services
                 TouchingEnemy(session, state.Value);
                 var currentX = state.Value.Coordinates.X;
                 var currentY = state.Value.Coordinates.Y;
-                Tile desiredTile;
+                var desiredX = currentX;
+                var desiredY = currentY;
 
                 switch (state.Value.Direction)
                 {
                     case EnumDirection.Up:
-                        desiredTile = session.Grid.GetTile(currentX, currentY - 1);
-                        if (state.Value.Coordinates.Y > 0 &&
-                            desiredTile.Type != EnumTileType.Wall)
-                        {
-                            state.Value.Coordinates = new(currentX, currentY - 1);
-                            if (desiredTile.Type == EnumTileType.Pellet)
-                            {
-                                session.Grid.ChangeTile(_emptyTileFactory.ConvertToEmpty(), currentX, currentY - 1);
-                                state.Value.Points += 1;
-                            }
-                        }
-
-                        break;
-                    case EnumDirection.Right:
-                        desiredTile = session.Grid.GetTile(currentX + 1, currentY);
-                        if (state.Value.Coordinates.X < session.Grid.Width - 1 &&
-                            desiredTile.Type != EnumTileType.Wall)
-                        {
-                            //state.Value.Coordinates.Offset(1, 0);
-                            state.Value.Coordinates = new(currentX + 1, currentY);
-                            if (desiredTile.Type == EnumTileType.Pellet)
-                            {
-                                session.Grid.ChangeTile(_emptyTileFactory.ConvertToEmpty(), currentX + 1, currentY);
-                                state.Value.Points += 1;
-                            }
-                        }
-
+                        desiredY--;
                         break;
                     case EnumDirection.Down:
-                        desiredTile = session.Grid.GetTile(currentX, currentY + 1);
-                        if (state.Value.Coordinates.Y < session.Grid.Height - 1 &&
-                            desiredTile.Type != EnumTileType.Wall)
-                        {
-                            //state.Value.Coordinates.Offset(0, 1);
-                            state.Value.Coordinates = new(currentX, currentY + 1);
-                            if (desiredTile.Type == EnumTileType.Pellet)
-                            {
-                                session.Grid.ChangeTile(_emptyTileFactory.ConvertToEmpty(), currentX, currentY + 1);
-                                state.Value.Points += 1;
-                            }
-                        }
-
+                        desiredY++;
                         break;
                     case EnumDirection.Left:
-                        desiredTile = session.Grid.GetTile(currentX - 1, currentY);
-                        if (state.Value.Coordinates.X > 0 &&
-                            desiredTile.Type != EnumTileType.Wall)
-                        {
-                            //state.Value.Coordinates.Offset(-1, 0);
-                            state.Value.Coordinates = new(currentX - 1, currentY);
-                            if (desiredTile.Type == EnumTileType.Pellet)
-                            {
-                                session.Grid.ChangeTile(_emptyTileFactory.ConvertToEmpty(), currentX - 1, currentY);
-                                state.Value.Points += 1;
-                            }
-                        }
-
+                        desiredX--;
                         break;
+                    case EnumDirection.Right:
+                        desiredX++;
+                        break;
+                }
+
+                if (state.Value.CanMove())
+                {
+                    var visitor = new TileVisitor(desiredX, desiredY, state.Value, session);
+
+                    var desiredTile = session.Grid.GetTile(desiredX, desiredY);
+
+                    desiredTile.AcceptVisitor(visitor);
                 }
 
                 TouchingEnemy(session, state.Value);
@@ -195,13 +214,41 @@ namespace PacMan.Server.Services
                 {
                     session.GameState = EnumGameState.Finished;
                 }
+
+                state.Value.Tick();
             }
 
             var enemyData = session.Enemies
-                .Select(e => new EnemyModel { Position = e.Position, Character = e.Character })
+                .Select(e => new EnemyModel
+                    { Position = new() { X = e.Position.X, Y = e.Position.Y }, Character = e.Character })
                 .ToList();
             await _hubContext.Clients.Group(sessionId).ReceiveEnemies(enemyData);
+            SpawnPowerUp(session, _pointsPoisonFactory, 40);
+            SpawnPowerUp(session, _foodPoisonFactory, 40);
+            SpawnPowerUp(session, _slowPoisonFactory, 40);
+            SpawnPowerUp(session, _immobilizePoisonFactory, 40);
+            SpawnPowerUp(session, _allCureTileFactory, 20);
             session.Ticks += 1;
+        }
+
+
+        private void SpawnPowerUp(GameStateModel session, TileFactory tileFactory, int ticks)
+        {
+            if (session.Ticks % ticks == 0)
+            {
+                var rnd = new Random();
+                var placed = false;
+                while (!placed)
+                {
+                    var x = rnd.Next(session.Grid.Width);
+                    var y = rnd.Next(session.Grid.Height);
+                    if (session.Grid.GetTile(x, y).Type != EnumTileType.Wall)
+                    {
+                        session.Grid.ChangeTile(tileFactory.CreateTile(), x, y);
+                        placed = true;
+                    }
+                }
+            }
         }
     }
 }

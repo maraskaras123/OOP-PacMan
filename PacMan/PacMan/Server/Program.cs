@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.EntityFrameworkCore;
+using PacMan.Server.DbSchema;
 using PacMan.Server.Hubs;
 using PacMan.Server.Services;
 using PacMan.Shared.Converters;
@@ -22,15 +24,17 @@ namespace PacMan.Server
 
             // Add services to the container.
 
-            //builder.Services.AddControllersWithViews();
-            //builder.Services.AddRazorPages();
+            builder.Services.AddDbContext<ApplicationDbContext>(
+                options => options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
             builder.Services.AddControllers();
             builder.Services.AddSingleton<IGameService, GameService>();
-            builder.Services.AddSignalR(o => { o.EnableDetailedErrors = true;});
-            builder.Services.AddSignalR(o => { o.EnableDetailedErrors = true; }).AddJsonProtocol(options =>
-            {
-                options.PayloadSerializerOptions.Converters.Add(new TileJsonConverter());
-            });
+            builder.Services.AddSignalR(o => { o.EnableDetailedErrors = true; });
+            builder.Services
+                .AddSignalR(o => { o.EnableDetailedErrors = true; })
+                .AddJsonProtocol(options =>
+                {
+                    options.PayloadSerializerOptions.Converters.Add(new TileJsonConverter());
+                });
             builder.Services.AddResponseCompression(opts =>
             {
                 opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[] { "application/octet-stream" });

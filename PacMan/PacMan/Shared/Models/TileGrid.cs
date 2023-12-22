@@ -1,6 +1,10 @@
+using PacMan.Shared.Patterns.Iterator;
+using PacMan.Shared.Patterns.Memento;
+using System.Collections;
+
 namespace PacMan.Shared.Models
 {
-    public class TileGrid
+    public class TileGrid : IteratorAggregate
     {
         public int Width { get; set; }
         public int Height { get; set; }
@@ -60,6 +64,32 @@ namespace PacMan.Shared.Models
             clone.Tiles = new(Tiles);
 
             return clone;
+        }
+
+        public IMemento Save()
+        {
+            var newTiles = new Dictionary<string, Tile>();
+            foreach (var tile in Tiles)
+            {
+                newTiles[tile.Key] = tile.Value;
+            }
+
+            return new TileGridMemento(newTiles);
+        }
+
+        public void Restore(IMemento memento)
+        {
+            if (!(memento is TileGridMemento))
+            {
+                throw new("Unknown memento class " + memento.ToString());
+            }
+
+            Tiles = memento.GetState();
+        }
+
+        public override IEnumerator GetEnumerator()
+        {
+            return new EmptyTileIterator(this);
         }
     }
 }

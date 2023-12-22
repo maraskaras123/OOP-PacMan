@@ -1,4 +1,5 @@
 using PacMan.Shared.Enums;
+using PacMan.Shared.Patterns.Visitor;
 
 namespace PacMan.Shared.Models
 {
@@ -7,6 +8,11 @@ namespace PacMan.Shared.Models
         public EmptyTile()
         {
             Type = EnumTileType.Empty;
+        }
+
+        public override void AcceptVisitor(IVisitor visitor)
+        {
+            visitor.VisitEmptyTile();
         }
     }
 }

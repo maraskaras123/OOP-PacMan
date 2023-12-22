@@ -33,7 +33,10 @@
                 <ol class="list-group">
                     @foreach (var playerScore in PlayerInfo.OrderByDescending(x => x.Points))
                     {
-                        <li class="@GetPlayerScoreClass(playerScore) list-group-item">@playerScore.PlayerName: @playerScore.Points</li>
+                        <li class="@GetPlayerScoreClass(playerScore) list-group-item">
+                            @playerScore.PlayerName:
+                            @playerScore.Points
+                        </li>
                     }
                 </ol>
             </div>
@@ -56,86 +59,74 @@
 
     @if (GameState == EnumGameState.Running)
     {
-        <div class="scoreboard">
-            @foreach (var playerScore in PlayerInfo)
-            {
-                <p>@(new MarkupString(GetPacmanColorByPlayer(playerScore.PlayerId))) @(playerScore.PlayerName): @playerScore.Points points</p>
-            }
+        <div class="scorecontainer">
+            <div class="scoreboard">
+                @foreach (var playerScore in PlayerInfo)
+                {
+                    <p>
+                        @(new MarkupString(GetPacmanColorByPlayer(playerScore.PlayerId))) @(playerScore.PlayerName):
+                        @playerScore.Points points
+                    </p>
+                }
+            </div>
         </div>
+
         <br/>
+        <div>
+            <center>
 
-        <table class="game-grid">
-            @for (var i = 0; i < Grid.Height; i++)
-            {
-                <tr>
-                    @for (var j = 0; j < Grid.Width; j++)
+            </center>
+
+        </div>
+
+        <div class="container">
+            <div class="gridbox">
+                <table class="game-grid">
+                    @for (var i = 0; i < GridState.Height; i++)
                     {
-                        // get current positions enemy, player and tile
-                        var enemyAtPosition = Enemies.FirstOrDefault(e => e.Position == new Point(j, i));
-                        var playerAtPosition = "";
-                        var playerDirection = "";
-                        foreach (var coordinates in PlayerCoordinates.Select(x => x.Split(',')))
-                        {
-                            if (int.Parse(coordinates[1]) == j && int.Parse(coordinates[2]) == i)
+                        <tr>
+                            @for (var j = 0; j < GridState.Width; j++)
                             {
-                                playerAtPosition = coordinates[0];
-                                playerDirection = coordinates[3];
-                            }
-                        }
-                        var tileType = Grid.GetTile(j, i);
-
-                        // if player at current position - render player
-                        if (playerAtPosition != "")
-                        {
-                            <td class="grid-cell">
-                                <center>
-                                    @(new MarkupString(GetPacmanColorByPlayer(int.Parse(playerAtPosition), int.Parse(playerDirection))))
-                                </center>
-                            </td>
-                        }
-                        else
-                        // no player at current position - render enemy
-                            if (enemyAtPosition != null)
-                            {
-                                <td class="grid-cell">
-                                    <center>
-                                        @(new MarkupString(GetGhostColorByChar(enemyAtPosition.Character)))
-                                    </center>
-                                </td>
-                            }
-                            else
-                            // no player or enemy at current position - render tile
-                            {
-                                switch (tileType)
+                                if (GridItems.TryGetValue(j * GridState.Width + i, out var tile))
                                 {
-                                    case EnumTileType.Wall:
-                                        @(new MarkupString("<td class='grid-cell wall'></td>"))
-                                        break;
-                                    case EnumTileType.Pellet:
-                                        @(new MarkupString("<td class='grid-cell'><center><div class='pellet'></center></div></td>"))
-                                        break;
-                                    default:
-                                        @(new MarkupString("<td class='grid-cell'></td>"))
-                                        break;
+                                    @(tile.Renderer.Render(tile.Options))
                                 }
                             }
+                        </tr>
                     }
-                </tr>
-            }
-        </table>
+                </table>
+            </div>
+            <div class="poison-legend">
+                <div>
+                    <div class="ImobilizePoison"></div>
+                    <span>Immobile Poison</span>
+                </div>
+                <div>
+                    <div class="SlowPoison"></div>
+                    <span>Slow Poison</span>
+                </div>
+                <div>
+                    <div class="FoodPoison"></div>
+                    <span>Food Poison</span>
+                </div>
+                <div>
+                    <div class="PointsPoison"></div>
+                    <span>Points Poison</span>
+                </div>
 
-        @if (SelectedInputMethod == EnumInputMethod.Buttons)
-        {
-            <br/>
-            <button @onclick="async () => Input.ChangeDirection(EnumDirection.Up.ToString())">↑</button>
+                @if (SelectedInputMethod == EnumInputMethod.Buttons)
+                {
+                    <br/>
+                    <button @onclick="async () => Input.ChangeDirection(EnumDirection.Up.ToString())">↑</button>
 
-            <br/>
-            <button @onclick="async () => Input.ChangeDirection(EnumDirection.Left.ToString())">←</button>
-            <button @onclick="async () => Input.ChangeDirection(EnumDirection.Right.ToString())">→</button>
+                    <br/>
+                    <button @onclick="async () => Input.ChangeDirection(EnumDirection.Left.ToString())">←</button>
+                    <button @onclick="async () => Input.ChangeDirection(EnumDirection.Right.ToString())">→</button>
 
-            <br/>
-            <button @onclick="async () => Input.ChangeDirection(EnumDirection.Down.ToString())">↓</button>
-            <br/>
-        }
+                    <br/>
+                    <button @onclick="async () => Input.ChangeDirection(EnumDirection.Down.ToString())">↓</button>
+                }
+            </div>
+        </div>
     }
 </div>

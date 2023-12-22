@@ -18,8 +18,7 @@ namespace PacMan.Client
 
             builder.Services.AddScoped(sp => new HttpClient
             {
-                BaseAddress =
-                    new("https://pacman-api.arnasm.dev")
+                BaseAddress = new(ApiUrl)
             });
             builder.Services.AddSingleton<IInputHandler, KeyboardInputHandler>();
             builder.Services.AddSingleton<InputService>();
