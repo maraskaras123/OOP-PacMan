@@ -82,12 +82,12 @@
         <div class="container">
             <div class="gridbox">
                 <table class="game-grid">
-                    @for (var i = 0; i < Grid.Height; i++)
+                    @for (var i = 0; i < GridState.Height; i++)
                     {
                         <tr>
-                            @for (var j = 0; j < Grid.Width; j++)
+                            @for (var j = 0; j < GridState.Width; j++)
                             {
-                                if (WebGrid.TryGetValue(j * Grid.Width + i, out var tile))
+                                if (GridItems.TryGetValue(j * GridState.Width + i, out var tile))
                                 {
                                     @(tile.Renderer.Render(tile.Options))
                                 }
